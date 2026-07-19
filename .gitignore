@@ -39,3 +39,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+.trigger
+*storybook.log
+storybook-static
+
+# keep the example env template tracked
+!.env.example
