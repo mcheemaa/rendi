@@ -67,6 +67,9 @@ for a hackathon" reasoning. Build like the users are already here.
 - Components come from shadcn through its CLI (`pnpm dlx shadcn@latest add <name>`),
   base-nova style on Base UI primitives. Hand-creating a component shadcn already
   provides is a violation; customization happens in the installed files and tokens.
+- Icons come from Lucide (the project icon library in `components.json`), through
+  shadcn conventions. Never hand-roll an icon; the brand marks in `brand/` are the only
+  custom vectors in the product.
 - Every component ships with a Storybook story beside it (`*.stories.tsx`). The
   Storybook vitest project must pass: interactions and the axe accessibility gate,
   which is set to error and fails the run on violations. Accessibility is a release
