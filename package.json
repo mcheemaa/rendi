@@ -15,8 +15,11 @@
 		"test:storybook": "vitest --project storybook run"
 	},
 	"dependencies": {
+		"@ai-sdk/anthropic": "^4.0.16",
+		"@ai-sdk/otel": "^1.0.31",
 		"@base-ui/react": "^1.6.0",
 		"@trigger.dev/sdk": "4.5.4",
+		"ai": "^7.0.31",
 		"class-variance-authority": "^0.7.1",
 		"clsx": "^2.1.1",
 		"lucide-react": "^1.25.0",
