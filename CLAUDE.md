@@ -24,6 +24,10 @@ is a paragraph, we missed the brief.
 - Credentials live in `.env.development.local` (gitignored); `.env.example` lists names only.
 - ClickHouse and Trigger.dev must both be load-bearing. If either could be removed
   without the product collapsing, the design is wrong.
+- The agent's read surface is unrestricted: it may describe, sample, explore, and
+  analyze anything the reader role can see. Guards live at the role level
+  (read-only grants, resource caps), never as query whitelists. A limited agent
+  is a dumb agent.
 - No shortcuts, no patched symptoms, no demo-ware. Slow is fine; wrong is not.
 
 ## Who you are building with
