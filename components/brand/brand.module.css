@@ -1,0 +1,117 @@
+/* The locked in-app brand behavior: the word writes itself once per session,
+   then rests forever; a soft ink sheen travels the stroke perpetually and
+   feeds on hover; the dot breathes only while the agent works. */
+
+/* Display stays a Tailwind concern on the component so `hidden` and
+   collapsed-state variants merge predictably. */
+.wordmark svg {
+	height: 100%;
+	width: auto;
+	overflow: visible;
+}
+
+.ink {
+	fill: none;
+	stroke: currentColor;
+	stroke-width: 13;
+	stroke-linecap: round;
+	stroke-linejoin: round;
+}
+
+.mark .ink {
+	stroke-width: 15;
+}
+
+.dot {
+	fill: var(--color-primary);
+	transform-origin: center;
+	transform-box: fill-box;
+}
+
+.entrance .ink {
+	stroke-dasharray: 1;
+	stroke-dashoffset: 1;
+	animation: draw 2.2s cubic-bezier(0.22, 1, 0.36, 1) 0.3s forwards;
+}
+
+.entrance .dot {
+	opacity: 0;
+	animation: dotpop 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.4) 2.4s forwards;
+}
+
+.working .dot {
+	animation: breathe 1.4s ease-in-out infinite;
+}
+
+.entrance.working .dot {
+	animation:
+		dotpop 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.4) 2.4s forwards,
+		breathe 1.4s ease-in-out 3s infinite;
+}
+
+.sheen {
+	fill: none;
+	stroke: var(--color-primary);
+	stroke-width: 13;
+	stroke-linecap: round;
+	stroke-linejoin: round;
+	stroke-dasharray: 0.1 0.9;
+	stroke-dashoffset: 1.1;
+	opacity: 0.3;
+	transition: opacity 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+	animation: sheen 3.8s linear 2.8s infinite;
+}
+
+.mark .sheen {
+	stroke-width: 15;
+}
+
+.wordmark:hover .sheen {
+	opacity: 0.85;
+}
+
+@keyframes draw {
+	to {
+		stroke-dashoffset: 0;
+	}
+}
+
+@keyframes dotpop {
+	from {
+		opacity: 0;
+		transform: scale(0.2);
+	}
+	to {
+		opacity: 1;
+		transform: scale(1);
+	}
+}
+
+@keyframes sheen {
+	to {
+		stroke-dashoffset: 0.1;
+	}
+}
+
+@keyframes breathe {
+	50% {
+		opacity: 0.35;
+		transform: scale(0.82);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.entrance .ink {
+		animation: none;
+		stroke-dashoffset: 0;
+	}
+	.entrance .dot,
+	.entrance.working .dot,
+	.working .dot {
+		animation: none;
+		opacity: 1;
+	}
+	.sheen {
+		display: none;
+	}
+}

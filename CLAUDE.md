@@ -76,9 +76,14 @@ for a hackathon" reasoning. Build like the users are already here.
 
 - Design system first. No product UI before tokens, palette, and base components exist.
   The brand system lives in `brand/` (BRAND.md, tokens.css, wordmark, ri mark).
-- Components come from shadcn through its CLI (`pnpm dlx shadcn@latest add <name>`),
-  base-nova style on Base UI primitives. Hand-creating a component shadcn already
-  provides is a violation; customization happens in the installed files and tokens.
+- HARD REQUIREMENT, never hand-roll a component. Before authoring any UI element,
+  check the shadcn registry first. If it exists and is not in the repo, run
+  `pnpm dlx shadcn@latest add <name>` and customize the installed file. This
+  includes the small things: kbd, spinner, empty states, input groups. Patterns
+  shadcn documents rather than ships (the mode toggle, cmd-k wiring) are adopted
+  from their docs, not reinvented from memory. Hand-rolling what exists is the
+  worst failure mode; the only permitted custom pieces are the brand vectors and
+  compositions that have no registry equivalent.
 - Icons come from Lucide (the project icon library in `components.json`), through
   shadcn conventions. Never hand-roll an icon; the brand marks in `brand/` are the only
   custom vectors in the product.

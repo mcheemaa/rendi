@@ -1,0 +1,39 @@
+"use client";
+
+import {
+	Breadcrumb,
+	BreadcrumbItem,
+	BreadcrumbLink,
+	BreadcrumbList,
+	BreadcrumbPage,
+	BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
+import { Separator } from "@/components/ui/separator";
+import { SidebarTrigger } from "@/components/ui/sidebar";
+
+export function AppTopbar({ title }: { title?: string }) {
+	return (
+		<header className="flex h-13 shrink-0 items-center gap-2 border-b px-4">
+			<SidebarTrigger className="-ml-1" />
+			<Separator
+				orientation="vertical"
+				className="mr-1 data-vertical:h-4 data-vertical:self-auto"
+			/>
+			<Breadcrumb>
+				<BreadcrumbList>
+					<BreadcrumbItem>
+						<BreadcrumbLink href="/">rendi</BreadcrumbLink>
+					</BreadcrumbItem>
+					{title && (
+						<>
+							<BreadcrumbSeparator />
+							<BreadcrumbItem>
+								<BreadcrumbPage>{title}</BreadcrumbPage>
+							</BreadcrumbItem>
+						</>
+					)}
+				</BreadcrumbList>
+			</Breadcrumb>
+		</header>
+	);
+}
