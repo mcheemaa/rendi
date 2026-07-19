@@ -48,6 +48,8 @@ for a hackathon" reasoning. Build like the users are already here.
   where we know better, do better (this repo already corrects stock imports and tokens).
 - Nothing is done until verified: tests green, typecheck clean, the real flow exercised
   end to end, UI proven with screenshots. Claims of success require evidence.
+- CI runs exactly the local gates and nothing else: `pnpm lint`, `pnpm typecheck`,
+  `pnpm test`, `pnpm build`. Green locally must mean green on GitHub.
 - Never commit or push without explicit approval.
 
 ## Code standards

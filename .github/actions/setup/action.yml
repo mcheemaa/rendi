@@ -1,0 +1,13 @@
+name: Setup
+description: pnpm, Node, and dependencies with a warm store cache
+
+runs:
+  using: composite
+  steps:
+    - uses: pnpm/action-setup@v6
+    - uses: actions/setup-node@v7
+      with:
+        node-version-file: package.json
+        cache: pnpm
+    - run: pnpm install --frozen-lockfile
+      shell: bash
