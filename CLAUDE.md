@@ -58,6 +58,12 @@ for a hackathon" reasoning. Build like the users are already here.
   code. A comment that narrates what a line does must not exist.
 - Lean and self-evident: no dead code, no speculative abstraction, no TODO litter.
 - Small, focused files. A file past 300 lines is probably doing too much.
+- One concern per file, always: system prompts live in their own file, every tool
+  lives in its own file under a `tools/` directory, shared schemas live in `lib/`.
+  Agent definitions only wire pieces together. No kitchen-sink files, ever.
+- `scripts/` holds only load-bearing, public-grade harnesses (today: the spike
+  proofs). When a spike graduates into a real test, its script is deleted.
+  Exploratory scratch never enters the repo.
 - Fix root causes. Never special-case around a bug.
 
 ## UI standards

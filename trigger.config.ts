@@ -1,12 +1,11 @@
+import { readFile } from "node:fs/promises";
+import { esbuildPlugin } from "@trigger.dev/core/v3/build";
 import { defineConfig } from "@trigger.dev/sdk";
 
 export default defineConfig({
 	project: "proj_mgvwxxgvbdhjiaujezlc",
 	runtime: "node",
 	logLevel: "log",
-	// The max compute seconds a task is allowed to run. If the task run exceeds this duration, it will be stopped.
-	// You can override this on an individual task.
-	// See https://trigger.dev/docs/runs/max-duration
 	maxDuration: 3600,
 	retries: {
 		enabledInDev: true,
@@ -19,4 +18,17 @@ export default defineConfig({
 		},
 	},
 	dirs: ["./trigger"],
+	build: {
+		extensions: [
+			esbuildPlugin({
+				name: "md-as-text",
+				setup(build) {
+					build.onLoad({ filter: /\.md$/ }, async (args) => ({
+						contents: await readFile(args.path, "utf8"),
+						loader: "text",
+					}));
+				},
+			}),
+		],
+	},
 });
