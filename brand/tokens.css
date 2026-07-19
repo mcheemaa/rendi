@@ -3,74 +3,88 @@
    passed the six-check palette validator in both modes. */
 
 :root {
-  --rendi-font-sans: "Instrument Sans", ui-sans-serif, system-ui, sans-serif;
-  --rendi-font-display: "Instrument Serif", ui-serif, Georgia, serif;
-  --rendi-font-mono: "Geist Mono", ui-monospace, "SF Mono", monospace;
+	--rendi-font-sans: "Instrument Sans", ui-sans-serif, system-ui, sans-serif;
+	--rendi-font-display: "Instrument Serif", ui-serif, Georgia, serif;
+	--rendi-font-mono: "Geist Mono", ui-monospace, "SF Mono", monospace;
 
-  --rendi-bg: #F8F5EF;
-  --rendi-surface: #FFFFFF;
-  --rendi-ink: #1E2226;
-  --rendi-muted: #6E6A61;
-  --rendi-line: #E6E1D6;
+	--rendi-bg: #f8f5ef;
+	--rendi-surface: #ffffff;
+	--rendi-ink: #1e2226;
+	--rendi-muted: #6e6a61;
+	--rendi-line: #e6e1d6;
 
-  --rendi-accent: #B97A18;        /* marks, dots, fills */
-  --rendi-accent-text: #8F5D0F;   /* accent as text, AA on bg */
-  --rendi-glow: rgba(185, 122, 24, 0.14);
+	--rendi-accent: #b97a18; /* marks, dots, fills */
+	--rendi-accent-text: #8f5d0f; /* accent as text, AA on bg */
+	--rendi-glow: rgba(185, 122, 24, 0.14);
 
-  --rendi-chart-1: #B97A18;
-  --rendi-chart-2: #068C7C;
-  --rendi-chart-3: #7A5EA8;
-  --rendi-chart-4: #C14F4F;
+	--rendi-chart-1: #b97a18;
+	--rendi-chart-2: #068c7c;
+	--rendi-chart-3: #7a5ea8;
+	--rendi-chart-4: #c14f4f;
 
-  /* status, provisional until the full system pass */
-  --rendi-good: #067A50;
-  --rendi-bad: #B3372F;
+	/* status, provisional until the full system pass */
+	--rendi-good: #067a50;
+	--rendi-bad: #b3372f;
 
-  --rendi-radius: 12px;
-  --rendi-radius-lg: 16px;
-  --rendi-ease: cubic-bezier(0.45, 0, 0.3, 1);
-  --rendi-draw-duration: 2.4s;
+	--rendi-radius: 12px;
+	--rendi-radius-lg: 16px;
+	--rendi-ease: cubic-bezier(0.45, 0, 0.3, 1);
+	--rendi-draw-duration: 2.4s;
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
-    --rendi-bg: #0E1113;
-    --rendi-surface: #171B1F;
-    --rendi-ink: #EBE8E1;
-    --rendi-muted: #A29C90;
-    --rendi-line: #262B30;
+	:root {
+		--rendi-bg: #0e1113;
+		--rendi-surface: #171b1f;
+		--rendi-ink: #ebe8e1;
+		--rendi-muted: #a29c90;
+		--rendi-line: #262b30;
 
-    --rendi-accent: #E8A33D;
-    --rendi-accent-text: #E8A33D;
-    --rendi-glow: rgba(232, 163, 61, 0.13);
+		--rendi-accent: #e8a33d;
+		--rendi-accent-text: #e8a33d;
+		--rendi-glow: rgba(232, 163, 61, 0.13);
 
-    --rendi-chart-1: #C68128;
-    --rendi-chart-2: #159C88;
-    --rendi-chart-3: #7D6BD9;
-    --rendi-chart-4: #C96262;
+		--rendi-chart-1: #c68128;
+		--rendi-chart-2: #159c88;
+		--rendi-chart-3: #7d6bd9;
+		--rendi-chart-4: #c96262;
 
-    --rendi-good: #2AA470;
-    --rendi-bad: #D96459;
-  }
+		--rendi-good: #2aa470;
+		--rendi-bad: #d96459;
+	}
 }
 
 /* Explicit theme wins over the system preference, in both directions. */
 :root[data-theme="light"] {
-  --rendi-bg: #F8F5EF; --rendi-surface: #FFFFFF; --rendi-ink: #1E2226;
-  --rendi-muted: #6E6A61; --rendi-line: #E6E1D6;
-  --rendi-accent: #B97A18; --rendi-accent-text: #8F5D0F;
-  --rendi-glow: rgba(185, 122, 24, 0.14);
-  --rendi-chart-1: #B97A18; --rendi-chart-2: #068C7C;
-  --rendi-chart-3: #7A5EA8; --rendi-chart-4: #C14F4F;
-  --rendi-good: #067A50; --rendi-bad: #B3372F;
+	--rendi-bg: #f8f5ef;
+	--rendi-surface: #ffffff;
+	--rendi-ink: #1e2226;
+	--rendi-muted: #6e6a61;
+	--rendi-line: #e6e1d6;
+	--rendi-accent: #b97a18;
+	--rendi-accent-text: #8f5d0f;
+	--rendi-glow: rgba(185, 122, 24, 0.14);
+	--rendi-chart-1: #b97a18;
+	--rendi-chart-2: #068c7c;
+	--rendi-chart-3: #7a5ea8;
+	--rendi-chart-4: #c14f4f;
+	--rendi-good: #067a50;
+	--rendi-bad: #b3372f;
 }
 
 :root[data-theme="dark"] {
-  --rendi-bg: #0E1113; --rendi-surface: #171B1F; --rendi-ink: #EBE8E1;
-  --rendi-muted: #A29C90; --rendi-line: #262B30;
-  --rendi-accent: #E8A33D; --rendi-accent-text: #E8A33D;
-  --rendi-glow: rgba(232, 163, 61, 0.13);
-  --rendi-chart-1: #C68128; --rendi-chart-2: #159C88;
-  --rendi-chart-3: #7D6BD9; --rendi-chart-4: #C96262;
-  --rendi-good: #2AA470; --rendi-bad: #D96459;
+	--rendi-bg: #0e1113;
+	--rendi-surface: #171b1f;
+	--rendi-ink: #ebe8e1;
+	--rendi-muted: #a29c90;
+	--rendi-line: #262b30;
+	--rendi-accent: #e8a33d;
+	--rendi-accent-text: #e8a33d;
+	--rendi-glow: rgba(232, 163, 61, 0.13);
+	--rendi-chart-1: #c68128;
+	--rendi-chart-2: #159c88;
+	--rendi-chart-3: #7d6bd9;
+	--rendi-chart-4: #c96262;
+	--rendi-good: #2aa470;
+	--rendi-bad: #d96459;
 }

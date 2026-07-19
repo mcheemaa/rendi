@@ -1,4 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 132 120">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 132 120" role="img">
+  <title>Rendi</title>
   <!-- Static favicon: the ri ligature, ink adapts to the browser theme, the dot stays amber. -->
   <style>
     .fs { stroke: #1E2226; }
