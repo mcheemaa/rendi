@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 132 120" role="img" aria-label="Rendi mark">
+  <!-- The ri ligature, self-writing variant: the wordmark's r flows into its i
+       in one continuous stroke, then the amber dot lands as the i's tittle and
+       pulses. Animation is SMIL, so it plays in browsers including img contexts.
+       For guaranteed rendering in static consumers, use rendi-mark.svg.
+       Stroke inherits currentColor. -->
+  <style>
+    .rendi-mark-dot { fill: var(--rendi-accent, #E8A33D); }
+  </style>
+  <path class="rendi-mark-stroke" pathLength="1" fill="none" stroke="currentColor" stroke-width="15" stroke-linecap="round" stroke-linejoin="round" d="M 8 104 C 22 92, 32 70, 38 46 C 40 34, 47 28, 53 32 C 59 37, 64 39, 72 37 C 77 36, 80 40, 79 46 C 76 60, 76 74, 80 88 C 82 96, 87 96, 90 90 C 94 79, 96 66, 98 54 C 99 63, 99 76, 102 88 C 105 97, 112 95, 118 88">
+    <set attributeName="stroke-dasharray" to="1" begin="0s"/>
+    <animate attributeName="stroke-dashoffset" from="1" to="0" begin="0s" dur="1.3s" fill="freeze" calcMode="spline" keyTimes="0;1" keySplines="0.45 0 0.3 1"/>
+  </path>
+  <circle class="rendi-mark-dot" cx="100" cy="26" r="9" fill="#E8A33D">
+    <set attributeName="opacity" to="0" begin="0s" end="1.25s"/>
+    <animate attributeName="opacity" from="0" to="1" begin="1.25s" dur="0.3s" fill="freeze"/>
+    <animate attributeName="r" values="2;10.4;9" keyTimes="0;0.7;1" begin="1.25s" dur="0.4s" fill="freeze"/>
+    <animate attributeName="opacity" values="1;0.55;1" begin="2.2s" dur="2.6s" repeatCount="indefinite"/>
+  </circle>
+</svg>

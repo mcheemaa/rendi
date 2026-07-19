@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 430 220" role="img" aria-label="rendi">
+  <!-- The Rendi wordmark, static. Renders identically in every consumer: browsers,
+       img tags, previews, sanitizers. Stroke uses currentColor (defaults to black);
+       set the host color, or theme the classes. The dot stays amber and can be
+       themed via the rendi accent custom property. For the self-writing version,
+       use rendi-wordmark-animated.svg. -->
+  <style>
+    .rendi-dot { fill: var(--rendi-accent, #E8A33D); }
+  </style>
+  <path class="rendi-stroke" fill="none" stroke="currentColor" stroke-width="13" stroke-linecap="round" stroke-linejoin="round" d="M 30 164 C 46 152, 58 128, 66 102 C 69 89, 76 83, 83 88 C 90 93, 95 95, 104 92 C 110 91, 113 96, 111 103 C 107 122, 107 138, 113 150 C 117 156, 123 153, 127 146 C 135 128, 145 111, 157 107 C 168 104, 174 111, 172 119 C 170 128, 158 132, 150 127 C 145 123, 146 115, 152 110 C 154 121, 156 136, 162 148 C 166 154, 172 153, 176 147 C 184 128, 190 109, 196 99 C 202 88, 214 88, 220 99 C 224 113, 225 134, 227 146 C 230 152, 236 152, 240 146 C 249 128, 259 112, 271 106 C 259 102, 248 110, 248 122 C 248 134, 259 142, 271 138 C 281 128, 291 92, 296 54 C 297 47, 300 46, 301 51 C 303 76, 303 118, 309 146 C 312 152, 318 151, 322 145 C 330 128, 335 114, 339 102 C 340 116, 341 134, 345 146 C 350 154, 361 150, 371 138 C 376 131, 379 126, 380 122"/>
+  <circle class="rendi-dot" cx="343" cy="68" r="9" fill="#E8A33D"/>
+</svg>

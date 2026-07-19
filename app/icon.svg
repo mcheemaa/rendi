@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 132 120">
+  <!-- Static favicon: the ri ligature, ink adapts to the browser theme, the dot stays amber. -->
+  <style>
+    .fs { stroke: #1E2226; }
+    @media (prefers-color-scheme: dark) { .fs { stroke: #EBE8E1; } }
+  </style>
+  <path class="fs" fill="none" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"
+        d="M 8 104 C 22 92, 32 70, 38 46 C 40 34, 47 28, 53 32 C 59 37, 64 39, 72 37 C 77 36, 80 40, 79 46 C 76 60, 76 74, 80 88 C 82 96, 87 96, 90 90 C 94 79, 96 66, 98 54 C 99 63, 99 76, 102 88 C 105 97, 112 95, 118 88"/>
+  <circle cx="100" cy="26" r="11" fill="#E8A33D"/>
+</svg>
