@@ -1,6 +1,6 @@
 import type { Tool } from "ai";
 import { describe, expect, it } from "vitest";
-import { parseAgentDefinition, resolveTools } from "./definition";
+import { parseAgentDefinition, resolveTools } from "./definition.ts";
 
 const valid = `---
 name: rendi

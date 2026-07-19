@@ -1,0 +1,25 @@
+{
+	"id": "6ade038e-66e3-48e7-b798-d5f7fc144f57",
+	"version": 1,
+	"title": "Daily Commit Counts",
+	"sql": "SELECT toDate(ts) AS day, count(sha) AS commits\nFROM git.commits\nWHERE ts >= {from:DateTime} AND ts < {to:DateTime}\nGROUP BY day\nORDER BY day",
+	"params": [
+		{
+			"name": "from",
+			"type": "DateTime",
+			"control": "timerange",
+			"defaultValue": "now-30d"
+		},
+		{
+			"name": "to",
+			"type": "DateTime",
+			"control": "timerange",
+			"defaultValue": "now"
+		}
+	],
+	"chart": {
+		"type": "bar",
+		"xField": "day",
+		"yField": "commits"
+	}
+}

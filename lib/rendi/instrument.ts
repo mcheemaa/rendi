@@ -14,7 +14,11 @@ export const instrumentSpec = z.object({
 				.string()
 				.describe("ClickHouse type, e.g. DateTime, UInt32, String"),
 			control: z.enum(["timerange", "select", "text", "number"]),
-			defaultValue: z.string(),
+			defaultValue: z
+				.string()
+				.describe(
+					"A bindable literal, never a SQL expression. DateTime params take ISO 8601 or a relative token: now, now-30d, now-12h, now-45m, now-2w. Numeric params take the number as a string.",
+				),
 		}),
 	),
 	chart: z.object({
