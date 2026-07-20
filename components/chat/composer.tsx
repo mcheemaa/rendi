@@ -1,6 +1,7 @@
 "use client";
 
 import type { ChatStatus } from "ai";
+import { useEffect, useRef } from "react";
 import {
 	PromptInput,
 	PromptInputBody,
@@ -21,6 +22,18 @@ export function Composer({
 	autoFocus?: boolean;
 }) {
 	const busy = status === "submitted" || status === "streaming";
+	const textareaRef = useRef<HTMLTextAreaElement>(null);
+	const wasBusy = useRef(false);
+
+	// Disabling the textarea while busy drops focus; hand it back when the
+	// turn ends so the follow-up can be typed without a click.
+	useEffect(() => {
+		if (wasBusy.current && !busy && autoFocus) {
+			textareaRef.current?.focus({ preventScroll: true });
+		}
+		wasBusy.current = busy;
+	}, [busy, autoFocus]);
+
 	return (
 		<div className="shrink-0 px-6 pb-6">
 			<PromptInput
@@ -32,6 +45,7 @@ export function Composer({
 			>
 				<PromptInputBody>
 					<PromptInputTextarea
+						ref={textareaRef}
 						className="min-h-12"
 						placeholder={busy ? "Rendi is working…" : "Ask rendi…"}
 						aria-label="Ask rendi"

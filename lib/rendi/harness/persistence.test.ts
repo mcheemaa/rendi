@@ -108,6 +108,23 @@ describe("chat start", () => {
 	});
 });
 
+describe("instant title", () => {
+	it("titles a new conversation with the first user message excerpt", async () => {
+		await persistTurnStart(startEvent([u0], 0));
+		expect((await conversation()).title).toBe("first question");
+	});
+
+	it("never overwrites a title that already exists", async () => {
+		await persistTurnStart(startEvent([u0], 0));
+		const db = holder.db as ReturnType<typeof drizzle>;
+		await db.execute(
+			`update conversations set title = 'Haiku Title' where id = '${CHAT}'`,
+		);
+		await persistTurnStart(startEvent([u0, a0, u1], 1));
+		expect((await conversation()).title).toBe("Haiku Title");
+	});
+});
+
 describe("happy path", () => {
 	it("persists two turns with index positions and turn attribution", async () => {
 		await persistTurnStart(startEvent([u0], 0));

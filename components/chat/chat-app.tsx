@@ -29,6 +29,10 @@ export function ChatApp({
 	const draftConsumed = useRef(false);
 	const hadDraft = useRef(false);
 	const recoveryTries = useRef(0);
+	const lateResumed = useRef(false);
+	const settleTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
+		undefined,
+	);
 
 	const transport = useTriggerChatTransport<typeof rendiChat>({
 		task: "rendi-chat",
@@ -38,14 +42,36 @@ export function ChatApp({
 		sessions: session ? { [chatId]: session } : undefined,
 	});
 
-	const { messages, sendMessage, setMessages, status, stop } = useChat({
-		id: chatId,
-		messages: initialMessages,
-		transport,
-		resume: initialMessages.length > 0,
-		onFinish: () => router.refresh(),
-		onError: (error) => toast.error(String(error)),
-	});
+	const { messages, sendMessage, setMessages, resumeStream, status, stop } =
+		useChat({
+			id: chatId,
+			messages: initialMessages,
+			transport,
+			resume: initialMessages.length > 0,
+			onFinish: () => {
+				// One refresh, after the title lands (~1s post-stream): the
+				// sidebar updates once with the real name instead of popping in
+				// as "New conversation" and renaming moments later.
+				clearTimeout(settleTimer.current);
+				settleTimer.current = setTimeout(() => router.refresh(), 2500);
+			},
+			onError: (error) => toast.error(String(error)),
+		});
+
+	useEffect(() => () => clearTimeout(settleTimer.current), []);
+
+	// The transport is built once, so a session token that arrives after
+	// mount (spectator pages that beat onChatStart) is injected in place;
+	// remounting for it would flash the whole pane.
+	useEffect(() => {
+		if (!session) return;
+		transport.setSession(chatId, session);
+		if (lateResumed.current || hadDraft.current) return;
+		if (status === "ready" && messages.at(-1)?.role === "user") {
+			lateResumed.current = true;
+			resumeStream();
+		}
+	}, [session, chatId, transport, status, messages, resumeStream]);
 
 	// useChat treats `messages` as initial state only, so server truth
 	// brought in by router.refresh() must be adopted explicitly or the

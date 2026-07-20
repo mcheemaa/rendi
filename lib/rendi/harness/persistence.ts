@@ -143,9 +143,44 @@ export async function persistChatStart(
 		.onConflictDoUpdate({ target: conversations.id, set: patch });
 }
 
+const DEFAULT_TITLE = "New conversation";
+const EXCERPT_CAP = 48;
+
+// The first user message becomes the instant title, the way ChatGPT and
+// Claude placehold, so no surface ever shows a generic name that later
+// swaps. Haiku refines it at turn completion.
+function excerptTitle(uiMessages: UIMessage[]): string | undefined {
+	const first = uiMessages.find((message) => message.role === "user");
+	const text = first?.parts
+		.filter((part) => part.type === "text")
+		.map((part) => part.text)
+		.join(" ")
+		.replace(/\s+/g, " ")
+		.trim();
+	if (!text) return undefined;
+	if (text.length <= EXCERPT_CAP) return text;
+	const cut = text.slice(0, EXCERPT_CAP);
+	const boundary = cut.lastIndexOf(" ");
+	return `${boundary > EXCERPT_CAP / 2 ? cut.slice(0, boundary) : cut}…`;
+}
+
 export async function persistTurnStart(event: TurnStartEvent): Promise<void> {
 	await getDb().transaction(async (tx) => {
 		await reconcile(tx, event.chatId, event.uiMessages, event.turn);
+		if (event.turn === 0) {
+			const excerpt = excerptTitle(event.uiMessages);
+			if (excerpt) {
+				await tx
+					.update(conversations)
+					.set({ title: excerpt })
+					.where(
+						and(
+							eq(conversations.id, event.chatId),
+							eq(conversations.title, DEFAULT_TITLE),
+						),
+					);
+			}
+		}
 	});
 }
 

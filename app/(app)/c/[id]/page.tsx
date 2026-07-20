@@ -19,10 +19,11 @@ export default async function ConversationPage({
 	return (
 		<>
 			<h1 className="sr-only">{conversation?.title ?? "New conversation"}</h1>
-			{/* Key flips once when the session token first lands, remounting so
-			    the transport hydrates it and resumes the live stream. */}
+			{/* Keyed by conversation identity only: React reuses same-type client
+			    components across route param changes, and chat state must never
+			    bleed between conversations. Within a conversation, never remount. */}
 			<ChatApp
-				key={`${id}:${conversation?.publicAccessToken ? "live" : "pending"}`}
+				key={id}
 				chatId={id}
 				initialMessages={transcript}
 				session={
