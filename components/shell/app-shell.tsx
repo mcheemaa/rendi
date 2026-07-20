@@ -5,23 +5,23 @@ import { AppTopbar } from "@/components/shell/app-topbar";
 import { CommandPalette } from "@/components/shell/command-palette";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 
+export type ConversationRef = { id: string; title: string };
+
 export function AppShell({
-	title,
-	working = false,
+	conversations,
 	children,
 }: {
-	title?: string;
-	working?: boolean;
+	conversations: ConversationRef[];
 	children: React.ReactNode;
 }) {
 	return (
 		<SidebarProvider>
-			<AppSidebar working={working} />
+			<AppSidebar conversations={conversations} />
 			<SidebarInset className="h-svh overflow-hidden">
-				<AppTopbar title={title} />
+				<AppTopbar conversations={conversations} />
 				{children}
 			</SidebarInset>
-			<CommandPalette />
+			<CommandPalette conversations={conversations} />
 		</SidebarProvider>
 	);
 }

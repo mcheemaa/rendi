@@ -1,4 +1,3 @@
-import { AppShell } from "@/components/shell/app-shell";
 import {
 	Empty,
 	EmptyDescription,
@@ -14,7 +13,8 @@ import { Kbd, KbdGroup } from "@/components/ui/kbd";
 
 export default function Home() {
 	return (
-		<AppShell>
+		<>
+			<h1 className="sr-only">Rendi</h1>
 			<div className="min-h-0 flex-1 overflow-hidden">
 				<Empty className="h-full">
 					<EmptyHeader>
@@ -38,6 +38,6 @@ export default function Home() {
 					</InputGroupAddon>
 				</InputGroup>
 			</div>
-		</AppShell>
+		</>
 	);
 }

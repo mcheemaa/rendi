@@ -1,9 +1,11 @@
 "use client";
 
-import { ChartColumn, ChartLine, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { RendiMark } from "@/components/brand/rendi-mark";
 import { RendiWordmark } from "@/components/brand/rendi-wordmark";
-import { conversations, instruments } from "@/components/shell/shell-data";
+import type { ConversationRef } from "@/components/shell/app-shell";
 import { ThemeToggle } from "@/components/shell/theme-toggle";
 import { Kbd, KbdGroup } from "@/components/ui/kbd";
 import {
@@ -22,25 +24,25 @@ import {
 } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 
-const instrumentIcons = { bar: ChartColumn, line: ChartLine } as const;
-
-export function AppSidebar({ working = false }: { working?: boolean }) {
+export function AppSidebar({
+	conversations,
+}: {
+	conversations: ConversationRef[];
+}) {
+	const pathname = usePathname() ?? "/";
 	return (
 		<Sidebar collapsible="icon">
 			<SidebarHeader>
 				<div className="flex justify-center px-2 pt-1 pb-2">
-					<RendiWordmark
-						working={working}
-						className="h-13 text-sidebar-foreground group-data-[collapsible=icon]:hidden"
-					/>
-					<RendiMark
-						working={working}
-						className="hidden h-9 text-sidebar-foreground group-data-[collapsible=icon]:inline-flex"
-					/>
+					<RendiWordmark className="h-13 text-sidebar-foreground group-data-[collapsible=icon]:hidden" />
+					<RendiMark className="hidden h-9 text-sidebar-foreground group-data-[collapsible=icon]:inline-flex" />
 				</div>
 				<SidebarMenu>
 					<SidebarMenuItem>
-						<SidebarMenuButton tooltip="New conversation">
+						<SidebarMenuButton
+							tooltip="New conversation"
+							render={<Link href="/" />}
+						>
 							<Plus className="text-primary" />
 							<span>New conversation</span>
 						</SidebarMenuButton>
@@ -60,48 +62,25 @@ export function AppSidebar({ working = false }: { working?: boolean }) {
 					<SidebarGroupLabel>Conversations</SidebarGroupLabel>
 					<SidebarGroupContent>
 						<SidebarMenu className="gap-1">
-							{conversations.map((conversation) => (
-								<SidebarMenuItem key={conversation.id}>
-									<SidebarMenuButton
-										isActive={conversation.active}
-										tooltip={conversation.title}
-									>
-										<span className="flex size-4 shrink-0 items-center justify-center">
-											<span
-												className={cn(
-													"size-2 rounded-full",
-													conversation.active
-														? "bg-primary"
-														: "bg-muted-foreground/50",
-												)}
-											/>
-										</span>
-										<span>{conversation.title}</span>
-									</SidebarMenuButton>
-								</SidebarMenuItem>
-							))}
-						</SidebarMenu>
-					</SidebarGroupContent>
-				</SidebarGroup>
-
-				<SidebarGroup>
-					<SidebarGroupLabel>Instruments</SidebarGroupLabel>
-					<SidebarGroupContent>
-						<SidebarMenu className="gap-1">
-							{instruments.map((instrument) => {
-								const Icon = instrumentIcons[instrument.kind];
+							{conversations.map((conversation) => {
+								const active = pathname === `/c/${conversation.id}`;
 								return (
-									<SidebarMenuItem key={instrument.id}>
-										<SidebarMenuButton tooltip={instrument.title}>
-											<Icon />
-											<span>{instrument.title}</span>
+									<SidebarMenuItem key={conversation.id}>
+										<SidebarMenuButton
+											isActive={active}
+											tooltip={conversation.title}
+											render={<Link href={`/c/${conversation.id}`} />}
+										>
+											<span className="flex size-4 shrink-0 items-center justify-center">
+												<span
+													className={cn(
+														"size-2 rounded-full",
+														active ? "bg-primary" : "bg-muted-foreground/50",
+													)}
+												/>
+											</span>
+											<span className="truncate">{conversation.title}</span>
 										</SidebarMenuButton>
-										<SidebarMenuBadge>
-											<span
-												className="size-1.5 rounded-full bg-live"
-												aria-hidden
-											/>
-										</SidebarMenuBadge>
 									</SidebarMenuItem>
 								);
 							})}

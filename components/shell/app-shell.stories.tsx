@@ -13,7 +13,10 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
 	args: {
-		title: "Daily commit rhythm",
+		conversations: [
+			{ id: "a", title: "Daily commit rhythm" },
+			{ id: "b", title: "Who ships on weekends" },
+		],
 		children: (
 			<div className="flex flex-1 flex-col items-center justify-center gap-3 px-8">
 				<h1 className="font-display text-4xl">What should the data become?</h1>
@@ -41,7 +44,7 @@ export const Default: Story = {
 
 		await userEvent.keyboard("{Meta>}k{/Meta}");
 		const palette = await within(document.body).findByPlaceholderText(
-			/search instruments/i,
+			/search conversations/i,
 		);
 		await expect(palette).toBeVisible();
 		await userEvent.keyboard("{Escape}");
