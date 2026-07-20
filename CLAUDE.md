@@ -64,6 +64,9 @@ for a hackathon" reasoning. Build like the users are already here.
   code. A comment that narrates what a line does must not exist.
 - Lean and self-evident: no dead code, no speculative abstraction, no TODO litter.
 - Small, focused files. A file past 300 lines is probably doing too much.
+- Database changes go through the tooling, never by hand: edit `lib/db/schema.ts`,
+  then `pnpm db:generate --name <change>`, then `pnpm db:migrate`. Migration SQL is
+  generated output; handwriting or editing it is a defect.
 - One concern per file, always: system prompts live in their own file, every tool
   lives in its own file under a `tools/` directory, shared schemas live in `lib/`.
   Agent definitions only wire pieces together. No kitchen-sink files, ever.
@@ -112,6 +115,8 @@ pnpm typecheck                                # tsc --noEmit
 pnpm lint                                     # biome check .
 pnpm format                                   # biome check --write .
 pnpm build                                    # production build
+pnpm db:generate --name <change>              # drizzle-kit emits the SQL migration from the schema diff
+pnpm db:migrate                               # apply pending migrations to Neon
 npx trigger.dev@latest dev --profile rendi    # Trigger.dev local task runner
 npx trigger.dev@latest deploy --profile rendi # deploy tasks
 ```
