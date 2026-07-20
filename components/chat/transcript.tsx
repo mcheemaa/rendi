@@ -7,6 +7,7 @@ import {
 	ConversationContent,
 	ConversationScrollButton,
 } from "@/components/ai-elements/conversation";
+import { Loader } from "@/components/ai-elements/loader";
 import { Message, MessageContent } from "@/components/ai-elements/message";
 import {
 	Reasoning,
@@ -20,9 +21,11 @@ import { instrumentSpec } from "@/lib/rendi/instrument";
 export function Transcript({
 	messages,
 	streamingMessageId,
+	pending = false,
 }: {
 	messages: UIMessage[];
 	streamingMessageId?: string;
+	pending?: boolean;
 }) {
 	return (
 		<Conversation className="min-h-0 flex-1">
@@ -37,6 +40,15 @@ export function Transcript({
 						</MessageContent>
 					</Message>
 				))}
+				{pending ? (
+					<Message from="assistant">
+						<MessageContent>
+							{/* self-start beats the flex column's stretch, pinning the
+							    spinner where the reply's first character will land. */}
+							<Loader className="self-start text-muted-foreground" />
+						</MessageContent>
+					</Message>
+				) : null}
 			</ConversationContent>
 			<ConversationScrollButton />
 		</Conversation>

@@ -89,6 +89,17 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+export const Pending: Story = {
+	args: {
+		messages: [realExchange[0]],
+		pending: true,
+	},
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement);
+		await expect(canvas.getByTitle("Loader")).toBeInTheDocument();
+	},
+};
+
 export const RealExchange: Story = {
 	args: { messages: realExchange },
 	play: async ({ canvasElement }) => {

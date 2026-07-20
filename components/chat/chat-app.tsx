@@ -87,6 +87,15 @@ export function ChatApp({
 		return () => clearTimeout(timer);
 	}, [status, messages, router]);
 
+	const last = messages.at(-1);
+	// Dead air between send and the first visible part: covers session
+	// create, run dequeue, and the model's silent lead-in.
+	const pending =
+		status === "submitted" ||
+		(status === "streaming" &&
+			(last?.role !== "assistant" ||
+				!last.parts.some((part) => part.type !== "step-start")));
+
 	return (
 		<>
 			<Transcript
@@ -94,6 +103,7 @@ export function ChatApp({
 				streamingMessageId={
 					status === "streaming" ? messages.at(-1)?.id : undefined
 				}
+				pending={pending}
 			/>
 			<Composer
 				status={status}
