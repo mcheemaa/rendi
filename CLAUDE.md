@@ -117,6 +117,6 @@ pnpm format                                   # biome check --write .
 pnpm build                                    # production build
 pnpm db:generate --name <change>              # drizzle-kit emits the SQL migration from the schema diff
 pnpm db:migrate                               # apply pending migrations to Neon
-npx trigger.dev@latest dev --profile rendi    # Trigger.dev local task runner
-npx trigger.dev@latest deploy --profile rendi # deploy tasks
+npx trigger.dev@4.5.4 dev start --env-file .env.development.local --profile rendi   # task runner (pin CLI to SDK version)
+npx trigger.dev@4.5.4 deploy --profile rendi  # deploy tasks
 ```

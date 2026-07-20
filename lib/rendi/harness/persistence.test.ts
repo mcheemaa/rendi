@@ -5,7 +5,11 @@ import type { UIMessage } from "ai";
 import { drizzle } from "drizzle-orm/pglite";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as schema from "../../db/schema.ts";
-import { persistTurnComplete, persistTurnStart } from "./persistence.ts";
+import {
+	persistChatStart,
+	persistTurnComplete,
+	persistTurnStart,
+} from "./persistence.ts";
 
 const holder = vi.hoisted(() => ({ db: undefined as unknown }));
 
@@ -78,6 +82,30 @@ beforeEach(async () => {
 		await client.exec(statement);
 	}
 	holder.db = drizzle(client, { schema });
+});
+
+describe("chat start", () => {
+	it("lands the session token before the first turn exists", async () => {
+		await persistChatStart({ chatId: CHAT, chatAccessToken: "pat-first" });
+		const convo = await conversation();
+		expect(convo.public_access_token).toBe("pat-first");
+		expect(convo.turns).toBe(0);
+	});
+
+	it("refreshes the token on continuation without touching history", async () => {
+		await persistTurnStart(startEvent([u0], 0));
+		await persistTurnComplete(completeEvent([u0, a0], [u0, a0], 0));
+		await persistChatStart({ chatId: CHAT, chatAccessToken: "pat-continued" });
+		const convo = await conversation();
+		expect(convo.public_access_token).toBe("pat-continued");
+		expect((await rows()).map((r) => r.id)).toEqual(["u0", "a0"]);
+	});
+
+	it("never clobbers a stored token with a blank one", async () => {
+		await persistChatStart({ chatId: CHAT, chatAccessToken: "pat-real" });
+		await persistChatStart({ chatId: CHAT, chatAccessToken: "" });
+		expect((await conversation()).public_access_token).toBe("pat-real");
+	});
 });
 
 describe("happy path", () => {

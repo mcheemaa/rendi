@@ -1,15 +1,10 @@
+import { HomeComposer } from "@/components/chat/home-composer";
 import {
 	Empty,
 	EmptyDescription,
 	EmptyHeader,
 	EmptyTitle,
 } from "@/components/ui/empty";
-import {
-	InputGroup,
-	InputGroupAddon,
-	InputGroupInput,
-} from "@/components/ui/input-group";
-import { Kbd, KbdGroup } from "@/components/ui/kbd";
 
 export default function Home() {
 	return (
@@ -27,17 +22,7 @@ export default function Home() {
 					</EmptyHeader>
 				</Empty>
 			</div>
-			<div className="shrink-0 px-6 pb-6">
-				<InputGroup className="mx-auto h-12! max-w-3xl rounded-xl bg-card shadow-xs">
-					<InputGroupInput placeholder="Ask rendi…" aria-label="Ask rendi" />
-					<InputGroupAddon align="inline-end">
-						<KbdGroup>
-							<Kbd>⌘</Kbd>
-							<Kbd>⏎</Kbd>
-						</KbdGroup>
-					</InputGroupAddon>
-				</InputGroup>
-			</div>
+			<HomeComposer />
 		</>
 	);
 }

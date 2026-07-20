@@ -5,6 +5,7 @@ import { streamText } from "ai";
 import { parseAgentDefinition, resolveTools } from "@/lib/rendi/definition";
 import { addCacheBreaks } from "@/lib/rendi/harness/cache";
 import {
+	persistChatStart,
 	persistTurnComplete,
 	persistTurnStart,
 } from "@/lib/rendi/harness/persistence";
@@ -28,6 +29,9 @@ const model = () => process.env.RENDI_MODEL ?? definition.model;
 export const rendiChat = chat.agent({
 	id: "rendi-chat",
 	tools,
+	onChatStart: async (event) => {
+		await persistChatStart(event);
+	},
 	onTurnStart: async (event) => {
 		beginTurnSpan(event, model());
 		await persistTurnStart(event);
@@ -77,6 +81,11 @@ export const rendiChat = chat.agent({
 			system: definition.system,
 			messages: cachedMessages,
 			abortSignal: signal,
+			providerOptions: {
+				// Adaptive thinking with visible summaries: omitted display would
+				// think silently, and watching Rendi reason is part of the product.
+				anthropic: { thinking: { type: "adaptive", display: "summarized" } },
+			},
 			onChunk: (event) => {
 				markFirstToken((event as { chunk?: { type?: string } }).chunk?.type);
 				return base.onChunk?.(event);

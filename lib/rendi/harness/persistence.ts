@@ -1,6 +1,11 @@
-import type { TurnCompleteEvent, TurnStartEvent } from "@trigger.dev/sdk/ai";
+import type {
+	ChatStartEvent,
+	TurnCompleteEvent,
+	TurnStartEvent,
+} from "@trigger.dev/sdk/ai";
 import type { UIMessage } from "ai";
 import { and, eq, inArray, sql } from "drizzle-orm";
+import type { PgUpdateSetSource } from "drizzle-orm/pg-core";
 import { getDb } from "../../db/index.ts";
 import { conversations, messages } from "../../db/schema.ts";
 
@@ -118,6 +123,26 @@ async function reconcile(
 	}
 }
 
+// Session token lands at chat start so a refresh during the very first
+// turn can still attach to the live stream.
+export async function persistChatStart(
+	event: Pick<ChatStartEvent, "chatId" | "chatAccessToken">,
+): Promise<void> {
+	const patch: PgUpdateSetSource<typeof conversations> = {
+		updatedAt: sql`now()`,
+	};
+	if (event.chatAccessToken) patch.publicAccessToken = event.chatAccessToken;
+	await getDb()
+		.insert(conversations)
+		.values({
+			id: event.chatId,
+			...(event.chatAccessToken
+				? { publicAccessToken: event.chatAccessToken }
+				: {}),
+		})
+		.onConflictDoUpdate({ target: conversations.id, set: patch });
+}
+
 export async function persistTurnStart(event: TurnStartEvent): Promise<void> {
 	await getDb().transaction(async (tx) => {
 		await reconcile(tx, event.chatId, event.uiMessages, event.turn);
@@ -145,17 +170,17 @@ export async function persistTurnComplete(
 				);
 		}
 
-		const set: Record<string, unknown> = {
+		const patch: PgUpdateSetSource<typeof conversations> = {
 			turns: event.turn + 1,
 			updatedAt: sql`now()`,
 		};
 		// The SDK's error-path fire carries a blank token and no cursor;
 		// blank values must never replace real ones.
-		if (event.chatAccessToken) set.publicAccessToken = event.chatAccessToken;
-		if (event.lastEventId) set.lastEventId = event.lastEventId;
+		if (event.chatAccessToken) patch.publicAccessToken = event.chatAccessToken;
+		if (event.lastEventId) patch.lastEventId = event.lastEventId;
 		await tx
 			.update(conversations)
-			.set(set)
+			.set(patch)
 			.where(eq(conversations.id, event.chatId));
 	});
 }
