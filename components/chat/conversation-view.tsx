@@ -3,7 +3,10 @@
 import type { UIMessage } from "ai";
 import { PanelRight } from "lucide-react";
 import { useState } from "react";
-import { CanvasPanel } from "@/components/canvas/canvas-panel";
+import {
+	CanvasPanel,
+	type CanvasSnapshot,
+} from "@/components/canvas/canvas-panel";
 import { ChatApp, type SessionState } from "@/components/chat/chat-app";
 import { Button } from "@/components/ui/button";
 
@@ -11,12 +14,17 @@ export function ConversationView({
 	chatId,
 	initialMessages,
 	session,
+	initialCanvas,
 }: {
 	chatId: string;
 	initialMessages: UIMessage[];
 	session?: SessionState;
+	initialCanvas: CanvasSnapshot | null;
 }) {
-	const [canvasOpen, setCanvasOpen] = useState(false);
+	// A canvas that already has blocks opens with the conversation.
+	const [canvasOpen, setCanvasOpen] = useState(
+		(initialCanvas?.doc.blocks.length ?? 0) > 0,
+	);
 	const [wide, setWide] = useState(false);
 
 	return (
@@ -42,6 +50,7 @@ export function ConversationView({
 			{canvasOpen ? (
 				<CanvasPanel
 					conversationId={chatId}
+					initialCanvas={initialCanvas}
 					wide={wide}
 					onToggleWide={() => setWide((current) => !current)}
 					onClose={() => setCanvasOpen(false)}

@@ -9,6 +9,8 @@ import {
 	timestamp,
 	unique,
 } from "drizzle-orm/pg-core";
+import type { CanvasDoc } from "../rendi/canvas";
+import type { OpEntry } from "../rendi/canvas-ops";
 import type { InstrumentSpec, Present } from "../rendi/instrument";
 
 export const conversations = pgTable("conversations", {
@@ -93,7 +95,50 @@ export const instrumentOps = pgTable(
 	],
 );
 
+// One canvas per conversation for v1; conversation_id is a column, not a
+// law, so workspace-level boards stay one migration away.
+export const canvases = pgTable("canvases", {
+	id: text("id").primaryKey(),
+	conversationId: text("conversation_id")
+		.notNull()
+		.unique()
+		.references(() => conversations.id),
+	title: text("title").notNull().default("Canvas"),
+	doc: jsonb("doc").notNull().$type<CanvasDoc>(),
+	version: integer("version").notNull().default(0),
+	createdAt: timestamp("created_at", { withTimezone: true })
+		.notNull()
+		.defaultNow(),
+	updatedAt: timestamp("updated_at", { withTimezone: true })
+		.notNull()
+		.defaultNow(),
+});
+
+// Append-only layout log, the instrument_ops sibling: no foreign keys so a
+// late op can never fail the write, seen_turn for at-least-once delivery.
+// Entries are enriched with before-values at apply time so readback stays a
+// pure projection.
+export const canvasOps = pgTable(
+	"canvas_ops",
+	{
+		id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+		canvasId: text("canvas_id").notNull(),
+		conversationId: text("conversation_id").notNull(),
+		actor: text("actor").notNull(),
+		entry: jsonb("entry").notNull().$type<OpEntry>(),
+		seenTurn: integer("seen_turn"),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.notNull()
+			.defaultNow(),
+	},
+	(table) => [
+		index("canvas_ops_unseen_idx").on(table.conversationId, table.seenTurn),
+	],
+);
+
 export type ConversationRow = typeof conversations.$inferSelect;
 export type MessageRow = typeof messages.$inferSelect;
 export type InstrumentRow = typeof instruments.$inferSelect;
 export type InstrumentOpRow = typeof instrumentOps.$inferSelect;
+export type CanvasRow = typeof canvases.$inferSelect;
+export type CanvasOpRow = typeof canvasOps.$inferSelect;

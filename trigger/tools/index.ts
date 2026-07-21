@@ -1,3 +1,4 @@
+import { applyCanvasOps } from "./apply-canvas-ops";
 import { queryData } from "./query-data";
 import { renderInstrument } from "./render-instrument";
 
@@ -6,4 +7,5 @@ import { renderInstrument } from "./render-instrument";
 export const toolRegistry = {
 	"render-instrument": renderInstrument,
 	"query-data": queryData,
+	"apply-canvas-ops": applyCanvasOps,
 };

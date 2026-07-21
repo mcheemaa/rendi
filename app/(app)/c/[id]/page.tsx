@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { ConversationView } from "@/components/chat/conversation-view";
 import { getConversation, getTranscript } from "@/lib/db/queries";
+import { loadCanvas } from "@/lib/rendi/harness/canvas-db";
 
 const CHAT_ID =
 	/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -15,7 +16,9 @@ export default async function ConversationPage({
 	// A well-formed id without a row does not exist YET (the harness writes
 	// it at turn start); render the pending chat instead of racing to a 404.
 	if (!conversation && !CHAT_ID.test(id)) notFound();
-	const transcript = conversation ? await getTranscript(id) : [];
+	const [transcript, canvas] = conversation
+		? await Promise.all([getTranscript(id), loadCanvas(id)])
+		: [[], undefined];
 	return (
 		<>
 			<h1 className="sr-only">{conversation?.title ?? "New conversation"}</h1>
@@ -26,6 +29,7 @@ export default async function ConversationPage({
 				key={id}
 				chatId={id}
 				initialMessages={transcript}
+				initialCanvas={canvas ?? null}
 				session={
 					conversation?.publicAccessToken
 						? {
