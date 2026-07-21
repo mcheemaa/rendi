@@ -17,7 +17,13 @@ const NUMERIC_TYPE = /^(Nullable\()?(U?Int|Float|Decimal)/;
 const ROW_HEIGHT = 33;
 const numberFormat = new Intl.NumberFormat("en-US");
 
-export function InstrumentTable({ result }: { result: InstrumentResult }) {
+export function InstrumentTable({
+	result,
+	className,
+}: {
+	result: InstrumentResult;
+	className?: string;
+}) {
 	const scroller = useRef<HTMLDivElement>(null);
 	const virtualizer = useVirtualizer({
 		count: result.rows.length,
@@ -36,7 +42,7 @@ export function InstrumentTable({ result }: { result: InstrumentResult }) {
 	);
 
 	return (
-		<div ref={scroller} className="max-h-80 overflow-auto">
+		<div ref={scroller} className={cn("max-h-80 overflow-auto", className)}>
 			<Table className="font-mono text-xs">
 				<TableHeader className="sticky top-0 z-10 bg-card">
 					<TableRow className="hover:bg-transparent">

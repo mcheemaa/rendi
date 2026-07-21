@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { ChatApp } from "@/components/chat/chat-app";
+import { ConversationView } from "@/components/chat/conversation-view";
 import { getConversation, getTranscript } from "@/lib/db/queries";
 
 const CHAT_ID =
@@ -22,7 +22,7 @@ export default async function ConversationPage({
 			{/* Keyed by conversation identity only: React reuses same-type client
 			    components across route param changes, and chat state must never
 			    bleed between conversations. Within a conversation, never remount. */}
-			<ChatApp
+			<ConversationView
 				key={id}
 				chatId={id}
 				initialMessages={transcript}

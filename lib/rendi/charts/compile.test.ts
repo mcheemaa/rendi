@@ -424,7 +424,8 @@ describe("radar", () => {
 			}[];
 		};
 		expect(option.radar.indicator).toHaveLength(4);
-		expect(option.radar.indicator.every((i) => i.max === 79)).toBe(true);
+		// 79 rounds up to the nice ceiling so the rings land on clean steps.
+		expect(option.radar.indicator.every((i) => i.max === 100)).toBe(true);
 		expect(option.series[0].lineStyle.width).toBe(2);
 		expect(option.series[0].areaStyle.opacity).toBe(0.14);
 		expect(option.series[0].data[0].value).toEqual([79, 15, 4, 2]);

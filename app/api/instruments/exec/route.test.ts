@@ -67,7 +67,7 @@ describe("POST /api/instruments/exec", () => {
 		expect(span.spanKind).toBe("query");
 		expect(span.name).toBe("instrument-exec");
 		expect(span.conversationId).toBe("conv-1");
-		expect(span.attrs).toEqual({ instrument_id: "inst-1" });
+		expect(span.attrs).toEqual({ instrument_id: "inst-1", surface: "chat" });
 		expect(span.sqlHash).toHaveLength(16);
 		expect(span.readRows).toBe(7641);
 
@@ -129,6 +129,21 @@ describe("POST /api/instruments/exec", () => {
 		expect(response.status).toBe(400);
 		expect(execute).not.toHaveBeenCalled();
 		expect(emitSpan).not.toHaveBeenCalled();
+	});
+
+	it("never writes chat readback for canvas-surface executions", async () => {
+		execute.mockResolvedValue(result);
+		const response = await post({
+			...valid,
+			context: { ...valid.context, surface: "canvas" },
+		});
+
+		expect(response.status).toBe(200);
+		expect(persistExecution).not.toHaveBeenCalled();
+		expect(emitSpan.mock.calls[0][0].attrs).toEqual({
+			instrument_id: "inst-1",
+			surface: "canvas",
+		});
 	});
 
 	it("rejects a select param that lost its options", async () => {

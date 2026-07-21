@@ -36,6 +36,13 @@ function distinct(rows: Rows, field: string): string[] {
 	return [...seen];
 }
 
+function niceCeil(value: number): number {
+	const magnitude = 10 ** Math.floor(Math.log10(Math.max(1, value)));
+	const scaled = value / magnitude;
+	const step = scaled <= 1 ? 1 : scaled <= 2 ? 2 : scaled <= 5 ? 5 : 10;
+	return step * magnitude;
+}
+
 function alpha(hex: string, value: number): string {
 	const r = Number.parseInt(hex.slice(1, 3), 16);
 	const g = Number.parseInt(hex.slice(3, 5), 16);
@@ -234,13 +241,15 @@ function cartesianOption(
 					boundaryGap: present.type === "bar",
 				},
 		// One y-axis by construction: a single object, never an array, so a
-		// dual-axis chart is unrepresentable.
+		// dual-axis chart is unrepresentable. alignTicks only means anything
+		// across multiple axes and its default logs advisories; off.
 		yAxis: {
 			type: "value",
 			...axisText(tokens),
 			axisLine: { show: false },
 			splitLine: { lineStyle: { color: tokens.line, type: [3, 4] } },
 			scale: present.type !== "bar",
+			alignTicks: false,
 		},
 	};
 	const frame = {
@@ -545,8 +554,9 @@ function radarOption(
 		name: String(row[present.nameField]),
 		value: numeric(row[present.valueField]) ?? 0,
 	}));
-	// A shared max keeps every axis in one unit, honest and comparable.
-	const max = Math.max(1, ...axes.map((axis) => axis.value));
+	// A shared max keeps every axis in one unit, honest and comparable, and
+	// a nice ceiling gives the rings readable steps.
+	const max = niceCeil(Math.max(1, ...axes.map((axis) => axis.value)));
 	return {
 		...base,
 		tooltip: { trigger: "item", ...tooltipStyle(tokens) },

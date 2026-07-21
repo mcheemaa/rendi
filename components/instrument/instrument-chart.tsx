@@ -5,6 +5,7 @@ import { type ChartPresent, compile } from "@/lib/rendi/charts/compile";
 import { type ECharts, echarts } from "@/lib/rendi/charts/echarts";
 import { useEmberTokens } from "@/lib/rendi/charts/tokens";
 import type { InstrumentResult } from "@/lib/rendi/exec";
+import { cn } from "@/lib/utils";
 
 // SVG for the card-sized results instruments actually show; canvas only
 // when a series is dense enough that DOM nodes would drag.
@@ -14,10 +15,12 @@ export function InstrumentChart({
 	present,
 	result,
 	title,
+	className,
 }: {
 	present: ChartPresent;
 	result: InstrumentResult;
 	title: string;
+	className?: string;
 }) {
 	const host = useRef<HTMLDivElement>(null);
 	const chart = useRef<ECharts | null>(null);
@@ -36,10 +39,20 @@ export function InstrumentChart({
 			renderer: renderer.current,
 		});
 		chart.current = instance;
-		const observer = new ResizeObserver(() => instance.resize());
+		// Resize storms during a live block resize coalesce to one relayout
+		// per frame, or ECharts repaints several times between paints.
+		let raf = 0;
+		const observer = new ResizeObserver(() => {
+			if (raf) return;
+			raf = requestAnimationFrame(() => {
+				raf = 0;
+				instance.resize();
+			});
+		});
 		observer.observe(host.current);
 		return () => {
 			observer.disconnect();
+			if (raf) cancelAnimationFrame(raf);
 			instance.dispose();
 			chart.current = null;
 		};
@@ -57,13 +70,14 @@ export function InstrumentChart({
 	}, [present, result, tokens]);
 
 	// A calendar runs wide and short; everything else gets the full well.
+	// Containers (a canvas block) may override the sizing entirely.
 	const height = present.type === "calendar" ? "h-[220px]" : "h-[340px]";
 
 	return (
-		<div className="relative">
+		<div className="relative h-full">
 			<div
 				ref={host}
-				className={`${height} w-full`}
+				className={cn(height, "w-full", className)}
 				role="img"
 				aria-label={title}
 			/>

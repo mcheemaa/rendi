@@ -14,6 +14,9 @@ const execRequest = z.object({
 		conversationId: z.string(),
 		instrumentId: z.string(),
 		version: z.number().int().positive().default(1),
+		// Canvas blocks execute here too, but their state lives in the canvas
+		// document and their ops in canvas_ops: one surface, one log.
+		surface: z.enum(["chat", "canvas"]).default("chat"),
 	}),
 	steer: z
 		.object({ param: z.string(), old: z.string(), new: z.string() })
@@ -34,17 +37,20 @@ export async function POST(request: Request) {
 	const started = performance.now();
 	// Readback rides in parallel with the query and can never fail it: the
 	// instrument row tracks what the user sees, a steer appends to the op log.
-	const recorded = persistExecution({
-		conversationId: context.conversationId,
-		instrumentId: context.instrumentId,
-		title: spec.title,
-		sqlText: spec.sql,
-		params: spec.params,
-		present: parsed.data.present,
-		version: context.version,
-		values,
-		steer,
-	}).catch((error) => console.error("[readback] persist failed", error));
+	const recorded =
+		context.surface === "chat"
+			? persistExecution({
+					conversationId: context.conversationId,
+					instrumentId: context.instrumentId,
+					title: spec.title,
+					sqlText: spec.sql,
+					params: spec.params,
+					present: parsed.data.present,
+					version: context.version,
+					values,
+					steer,
+				}).catch((error) => console.error("[readback] persist failed", error))
+			: Promise.resolve();
 	// Steering runs with the model out of the loop: no run, no parent span.
 	// The query span still lands under the conversation with the instrument
 	// in attrs, which is exactly the no-model proof the demo leans on.
@@ -55,7 +61,7 @@ export async function POST(request: Request) {
 		name: "instrument-exec",
 		input: { sql: spec.sql, values },
 		sqlHash: createHash("sha256").update(spec.sql).digest("hex").slice(0, 16),
-		attrs: { instrument_id: context.instrumentId },
+		attrs: { instrument_id: context.instrumentId, surface: context.surface },
 	};
 	try {
 		reader ??= clickhouseReader();
