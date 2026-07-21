@@ -47,7 +47,11 @@ sandbox that wears the design tokens: write against var(--card),
 var(--foreground), var(--accent-text), var(--chart-1) and the fonts, never
 hex). Coordinates are world pixels on an 8px lattice, y grows down, overlap
 is legal and z is paint order. Good sizes: charts 560x336, stats 272x152,
-notes 320x200. Pack left to right from x 48 with 24px gaps, rows 24px apart.
+notes 320x200. Give text room to breathe: a title with a caption wants at
+least 112 of height, and every wrapped line wants about 28 more; a clipped
+line reads as a bug. In html blocks, fill the frame edge to edge and never
+wrap your markup in its own rounded outer card; the block already has the
+corners. Pack left to right from x 48 with 24px gaps, rows 24px apart.
 Place every block deliberately; never stack at the origin. One intent is one
 call: several ops with a label land as a single history frame.
 
