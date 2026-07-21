@@ -30,7 +30,8 @@ most, ordered by value; scatter shows the relationship between two numeric
 columns; heatmap shows intensity across two dimensions, like hour by weekday;
 calendar is the GitHub contributions look, one date column plus a value over
 up to a year of days; radar profiles one subject across three or more axes
-that share a unit. For multi-series, either give yField a list of measure
+that share a unit; stat renders headline numbers as tiles, one row per tile
+in long format, a label column naming each. For multi-series, either give yField a list of measure
 columns, or set seriesField to the column that splits rows into series after
 a GROUP BY of two dimensions, seven series at most, so aggregate or LIMIT the
 series dimension in SQL. Colors, legends, and theming are never yours; the

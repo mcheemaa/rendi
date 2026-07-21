@@ -1,6 +1,6 @@
 "use client";
 
-import { Moon, PanelLeft, Plus } from "lucide-react";
+import { Activity, Moon, PanelLeft, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -118,6 +118,12 @@ export function CommandPalette({
 						<CommandItem onSelect={() => run(toggleSidebar)}>
 							<PanelLeft />
 							Toggle sidebar
+						</CommandItem>
+						<CommandItem
+							onSelect={() => run(() => router.push("/observability"))}
+						>
+							<Activity />
+							Open observability
 						</CommandItem>
 					</CommandGroup>
 					{pool.length > 0 ? (

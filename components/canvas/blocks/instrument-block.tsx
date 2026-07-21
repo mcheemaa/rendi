@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { Shimmer } from "@/components/ai-elements/shimmer";
 import { InstrumentChart } from "@/components/instrument/instrument-chart";
+import { InstrumentStat } from "@/components/instrument/instrument-stat";
 import { InstrumentTable } from "@/components/instrument/instrument-table";
 import { ParamControls } from "@/components/instrument/param-controls";
 import { presentOf } from "@/lib/rendi/instrument";
@@ -59,6 +60,10 @@ export function InstrumentBlockBody({ block }: { block: InstrumentBlock }) {
 							title={block.instrument.title}
 							className="h-full"
 						/>
+					) : shape.kind === "stat" ? (
+						<div className="p-1.5">
+							<InstrumentStat present={shape} result={result} />
+						</div>
 					) : (
 						<InstrumentTable result={result} className="h-full max-h-none" />
 					)

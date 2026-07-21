@@ -16,7 +16,7 @@ const execRequest = z.object({
 		version: z.number().int().positive().default(1),
 		// Canvas blocks execute here too, but their state lives in the canvas
 		// document and their ops in canvas_ops: one surface, one log.
-		surface: z.enum(["chat", "canvas"]).default("chat"),
+		surface: z.enum(["chat", "canvas", "observability"]).default("chat"),
 	}),
 	steer: z
 		.object({ param: z.string(), old: z.string(), new: z.string() })

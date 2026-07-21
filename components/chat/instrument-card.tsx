@@ -3,6 +3,7 @@
 import { Shimmer } from "@/components/ai-elements/shimmer";
 import { InstrumentChart } from "@/components/instrument/instrument-chart";
 import { InstrumentQuery } from "@/components/instrument/instrument-query";
+import { InstrumentStat } from "@/components/instrument/instrument-stat";
 import { InstrumentTable } from "@/components/instrument/instrument-table";
 import { ParamControls } from "@/components/instrument/param-controls";
 import { useInstrument } from "@/components/instrument/use-instrument";
@@ -26,19 +27,22 @@ const numberFormat = new Intl.NumberFormat("en-US");
 export function InstrumentCard({
 	instrument,
 	conversationId,
+	surface,
 }: {
 	instrument: Instrument;
 	conversationId: string;
+	surface?: "chat" | "observability";
 }) {
 	const shape = presentOf(instrument);
 	const { values, result, error, running, steer } = useInstrument(
 		instrument,
 		conversationId,
+		surface,
 	);
 
 	return (
 		<Card className="gap-0 overflow-hidden py-0">
-			<Tabs defaultValue={shape.kind === "chart" ? "chart" : "table"}>
+			<Tabs defaultValue={shape.kind === "table" ? "table" : "chart"}>
 				<CardHeader className="flex-row items-center gap-2.5 border-b px-4 py-3 [.border-b]:pb-3">
 					<CardTitle className="font-display text-lg font-normal leading-none">
 						{instrument.title}
@@ -50,9 +54,9 @@ export function InstrumentCard({
 						<Spinner className="size-3.5 text-muted-foreground" />
 					) : null}
 					<TabsList className="ml-auto h-8">
-						{shape.kind === "chart" ? (
+						{shape.kind !== "table" ? (
 							<TabsTrigger value="chart" className="px-3 text-xs">
-								Chart
+								{shape.kind === "stat" ? "Stats" : "Chart"}
 							</TabsTrigger>
 						) : null}
 						<TabsTrigger value="table" className="px-3 text-xs">
@@ -80,6 +84,15 @@ export function InstrumentCard({
 								/>
 							) : (
 								<Pending error={error} tall />
+							)}
+						</TabsContent>
+					) : null}
+					{shape.kind === "stat" ? (
+						<TabsContent value="chart" className="px-3 py-3">
+							{result ? (
+								<InstrumentStat present={shape} result={result} />
+							) : (
+								<Pending error={error} />
 							)}
 						</TabsContent>
 					) : null}

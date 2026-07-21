@@ -20,6 +20,7 @@ export type InstrumentState = {
 export function useInstrument(
 	instrument: Instrument,
 	conversationId: string,
+	surface: "chat" | "observability" = "chat",
 ): InstrumentState {
 	const [values, setValues] = useState<Record<string, string>>({});
 	const [result, setResult] = useState<InstrumentResult | null>(null);
@@ -57,6 +58,7 @@ export function useInstrument(
 							conversationId,
 							instrumentId: current.id,
 							version: current.version,
+							surface,
 						},
 						...(steer ? { steer } : {}),
 					}),
@@ -77,7 +79,7 @@ export function useInstrument(
 				if (seq === requestSeq.current) setRunning(false);
 			}
 		},
-		[conversationId],
+		[conversationId, surface],
 	);
 
 	// Property 2: a persisted instrument comes alive the moment it renders,

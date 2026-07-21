@@ -60,12 +60,26 @@ const radar = z.object({
 	valueField: z.string(),
 });
 
+const stat = z.object({
+	kind: z.literal("stat"),
+	valueField: z.string(),
+	labelField: z
+		.string()
+		.optional()
+		.describe("Names each tile; one row per tile, long format"),
+	unit: z
+		.string()
+		.optional()
+		.describe('Suffix rendered after the value, e.g. "ms" or "$"'),
+});
+
 export const present = z.union([
 	cartesian,
 	pie,
 	heatmap,
 	calendar,
 	radar,
+	stat,
 	z.object({ kind: z.literal("table") }),
 ]);
 
