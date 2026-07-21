@@ -16,6 +16,7 @@ import {
 } from "@/components/ai-elements/reasoning";
 import { InstrumentCard } from "@/components/chat/instrument-card";
 import { QueryDataCard } from "@/components/chat/query-data-card";
+import { ScreenshotCard } from "@/components/chat/screenshot-card";
 import { persistedInstrumentSpec } from "@/lib/rendi/instrument";
 
 export function Transcript({
@@ -114,6 +115,27 @@ function Parts({
 											rows?: Record<string, unknown>[];
 											rowCount?: number;
 											truncated?: boolean;
+										})
+									: undefined
+							}
+							errorText={
+								part.state === "output-error" ? part.errorText : undefined
+							}
+						/>
+					);
+				}
+				if (part.type === "tool-screenshot-canvas") {
+					return (
+						<ScreenshotCard
+							key={key}
+							state={part.state as ToolUIPart["state"]}
+							output={
+								part.state === "output-available"
+									? (part.output as {
+											theme?: string;
+											width?: number;
+											height?: number;
+											pngBase64?: string;
 										})
 									: undefined
 							}
