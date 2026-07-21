@@ -1,5 +1,6 @@
 "use client";
 
+import { Hallmark } from "@/components/home/hallmark";
 import { useVignettePlayer } from "@/components/home/use-vignette-player";
 import { Vignette } from "@/components/home/vignette";
 import { Button } from "@/components/ui/button";
@@ -43,6 +44,7 @@ export function HomeEmptyState({
 	return (
 		<Empty className="relative z-[1] h-full">
 			<EmptyHeader className="max-w-none">
+				<Hallmark className="mb-5" />
 				<EmptyMedia className="mb-4">
 					<Vignette phase={phase} text={text} animate={animate} />
 				</EmptyMedia>

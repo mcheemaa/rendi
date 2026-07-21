@@ -22,6 +22,7 @@ export default defineConfig({
 					name: "unit",
 					include: [
 						"app/**/*.test.ts",
+						"components/**/*.test.ts",
 						"lib/**/*.test.ts",
 						"trigger/**/*.test.ts",
 					],
