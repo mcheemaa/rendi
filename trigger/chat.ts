@@ -5,6 +5,10 @@ import { streamText } from "ai";
 import { parseAgentDefinition, resolveTools } from "@/lib/rendi/definition";
 import { addCacheBreaks } from "@/lib/rendi/harness/cache";
 import {
+	canvasStateBlock,
+	markCanvasOpsSeen,
+} from "@/lib/rendi/harness/canvas-readback";
+import {
 	persistChatStart,
 	persistTurnComplete,
 	persistTurnStart,
@@ -55,6 +59,9 @@ export const rendiChat = chat.agent({
 		await markOpsSeen(event.chatId, event.turn).catch((error) =>
 			console.error("[readback] mark seen failed", error),
 		);
+		await markCanvasOpsSeen(event.chatId, event.turn).catch((error) =>
+			console.error("[canvas-readback] mark seen failed", error),
+		);
 		const titleParent = turnContext()?.spanId;
 		endTurnSpan({
 			...event,
@@ -82,13 +89,21 @@ export const rendiChat = chat.agent({
 			onChunk?: (event: unknown) => void | PromiseLike<void>;
 			onStepFinish?: (step: StepResult<ToolSet>) => void | PromiseLike<void>;
 		};
-		// Property 4: the user's hands on the instruments, injected at the tail
-		// so the cached conversation prefix stays byte-identical.
+		// Property 4: the user's hands on the instruments and the canvas,
+		// injected at the tail so the cached prefix stays byte-identical.
+		// Order: instrument state, canvas state, the newest user message.
 		const turn = turnContext();
-		const state = turn
-			? await instrumentStateBlock(turn.conversationId)
-			: undefined;
-		const cachedMessages = addCacheBreaks(withInstrumentState(messages, state));
+		const [instrumentState, canvasState] = turn
+			? await Promise.all([
+					instrumentStateBlock(turn.conversationId),
+					canvasStateBlock(turn.conversationId),
+				])
+			: [undefined, undefined];
+		const staged = withInstrumentState(
+			withInstrumentState(messages, instrumentState),
+			canvasState,
+		);
+		const cachedMessages = addCacheBreaks(staged);
 		recordTurnMessages(cachedMessages);
 		return streamText({
 			...base,
