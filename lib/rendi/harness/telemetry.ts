@@ -1,3 +1,4 @@
+import { configureOtlp } from "@/lib/obs/otlp.ts";
 import { configureWriter } from "@/lib/obs/writer.ts";
 
 // The observability core lives in lib/obs (Trigger Agent Observability);
@@ -13,6 +14,9 @@ if (url && password) {
 		username: "rendi_telemetry_writer",
 		database: "rendi_telemetry",
 	});
+}
+if (process.env.CLICKSTACK_OTLP_URL) {
+	configureOtlp({ url: process.env.CLICKSTACK_OTLP_URL, serviceName: "rendi" });
 }
 
 export type { Span, SpanKind } from "@/lib/obs/span.ts";

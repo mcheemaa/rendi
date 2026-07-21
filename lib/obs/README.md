@@ -121,10 +121,18 @@ write-only user for the agent side). Every span carries capped `input`
 and `output`, so the agent itself can answer questions about its own
 behavior with plain SQL.
 
-## OpenTelemetry mapping
+## OpenTelemetry export
 
-Column names are ClickHouse-native; the GenAI semantic-convention mapping
-for OTLP export:
+Set an OTLP endpoint and every span dual-emits to any OpenTelemetry
+collector (ClickStack's included) beside the ClickHouse insert:
+
+```ts
+configureOtlp({ url: "http://localhost:4318", serviceName: "my-agent" });
+```
+
+Traces group one-per-turn, so the tree a collector UI shows matches the
+one the spans table holds. Export is off until configured and can never
+fail a turn. The GenAI semantic-convention mapping:
 
 | column | gen_ai.* attribute |
 | --- | --- |

@@ -1,5 +1,6 @@
 import { createClient } from "@clickhouse/client";
 import type { LanguageModelUsage } from "ai";
+import { exportOtlp } from "./otlp.ts";
 import { priceUsage } from "./pricing.ts";
 import type { Span } from "./span.ts";
 
@@ -105,6 +106,10 @@ function costColumns(model?: string, usage?: LanguageModelUsage) {
 
 // Telemetry must never break a turn: failures log and drop.
 export function emitSpan(span: Span): void {
+	// One identity per span across every lens: the ClickHouse row and the
+	// OTLP export share the same id.
+	const spanId = span.spanId ?? crypto.randomUUID();
+	exportOtlp({ ...span, spanId });
 	const sink = writerClient();
 	if (!sink) return;
 	sink
@@ -117,7 +122,7 @@ export function emitSpan(span: Span): void {
 					conversation_id: span.conversationId,
 					turn: span.turn,
 					run_id: span.runId ?? "",
-					span_id: span.spanId ?? crypto.randomUUID(),
+					span_id: spanId,
 					parent_span_id: span.parentSpanId ?? "",
 					span_kind: span.spanKind,
 					name: span.name,
