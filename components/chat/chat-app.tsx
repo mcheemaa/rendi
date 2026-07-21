@@ -126,6 +126,7 @@ export function ChatApp({
 		<>
 			<Transcript
 				messages={messages}
+				conversationId={chatId}
 				streamingMessageId={
 					status === "streaming" ? messages.at(-1)?.id : undefined
 				}

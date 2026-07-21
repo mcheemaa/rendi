@@ -72,23 +72,47 @@ function resolveValue(param: ParamSpec, raw: string, now: Date): unknown {
 	return raw;
 }
 
+export type InstrumentResult = {
+	columns: { name: string; type: string }[];
+	rows: Record<string, unknown>[];
+	stats: {
+		elapsedMs: number;
+		serverElapsedMs: number;
+		rowsRead: number;
+		bytesRead: number;
+	};
+};
+
 export async function executeInstrument(
 	client: ClickHouseClient,
 	spec: ExecutableSpec,
 	values: Record<string, string> = {},
-): Promise<{ rows: Record<string, unknown>[]; elapsedMs: number }> {
+): Promise<InstrumentResult> {
 	const started = performance.now();
 	const result = await client.query({
 		query: spec.sql,
 		query_params: resolveQueryParams(spec, values),
-		format: "JSONEachRow",
+		// The JSON envelope carries column meta and server statistics in one
+		// response; buffering it is a non-issue under the row cap.
+		format: "JSON",
 		// Belt over the reader user's grants: hard caps hold even if a
-		// generated query is pathological.
+		// generated query is pathological. Overflow throws, in-band and loud,
+		// so an oversized result tells the author to aggregate or LIMIT.
 		clickhouse_settings: {
 			max_execution_time: 10,
 			max_result_rows: "10000",
+			max_result_bytes: "52428800",
 		},
 	});
-	const rows = await result.json<Record<string, unknown>>();
-	return { rows, elapsedMs: Math.round(performance.now() - started) };
+	const payload = await result.json<Record<string, unknown>>();
+	return {
+		columns: payload.meta ?? [],
+		rows: payload.data,
+		stats: {
+			elapsedMs: Math.round(performance.now() - started),
+			serverElapsedMs: Math.round((payload.statistics?.elapsed ?? 0) * 1000),
+			rowsRead: payload.statistics?.rows_read ?? 0,
+			bytesRead: payload.statistics?.bytes_read ?? 0,
+		},
+	};
 }

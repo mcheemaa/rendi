@@ -19,6 +19,8 @@
 	--color-sidebar-primary: var(--sidebar-primary);
 	--color-sidebar-foreground: var(--sidebar-foreground);
 	--color-sidebar: var(--sidebar);
+	--color-chart-7: var(--chart-7);
+	--color-chart-6: var(--chart-6);
 	--color-chart-5: var(--chart-5);
 	--color-chart-4: var(--chart-4);
 	--color-chart-3: var(--chart-3);
@@ -76,7 +78,9 @@
 	--chart-2: #068c7c;
 	--chart-3: #7a5ea8;
 	--chart-4: #c14f4f;
-	--chart-5: #6e6a61;
+	--chart-5: #3e6fa8;
+	--chart-6: #4e8a3c;
+	--chart-7: #a64d7e;
 	--radius: 0.625rem;
 	--sidebar: #faf7f1;
 	--sidebar-foreground: #1e2226;
@@ -88,6 +92,7 @@
 	--sidebar-ring: #b97a18;
 	--live: #067a50;
 	--accent-text: #8f5d0f; /* amber as text; the fill amber misses AA on paper */
+	--glow: rgba(185, 122, 24, 0.14);
 }
 
 .dark {
@@ -113,7 +118,9 @@
 	--chart-2: #159c88;
 	--chart-3: #7d6bd9;
 	--chart-4: #c96262;
-	--chart-5: #98948b;
+	--chart-5: #5a8ac6;
+	--chart-6: #5f9c42;
+	--chart-7: #c56b9b;
 	--sidebar: #121519;
 	--sidebar-foreground: #ebe8e1;
 	--sidebar-primary: #e8a33d;
@@ -124,6 +131,7 @@
 	--sidebar-ring: #e8a33d;
 	--live: #2fa37a;
 	--accent-text: #e8a33d;
+	--glow: rgba(232, 163, 61, 0.13);
 }
 
 @layer base {

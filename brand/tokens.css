@@ -21,6 +21,9 @@
 	--rendi-chart-2: #068c7c;
 	--rendi-chart-3: #7a5ea8;
 	--rendi-chart-4: #c14f4f;
+	--rendi-chart-5: #3e6fa8;
+	--rendi-chart-6: #4e8a3c;
+	--rendi-chart-7: #a64d7e;
 
 	/* status, provisional until the full system pass */
 	--rendi-good: #067a50;
@@ -48,6 +51,9 @@
 		--rendi-chart-2: #159c88;
 		--rendi-chart-3: #7d6bd9;
 		--rendi-chart-4: #c96262;
+		--rendi-chart-5: #5a8ac6;
+		--rendi-chart-6: #5f9c42;
+		--rendi-chart-7: #c56b9b;
 
 		--rendi-good: #2aa470;
 		--rendi-bad: #d96459;
@@ -68,6 +74,9 @@
 	--rendi-chart-2: #068c7c;
 	--rendi-chart-3: #7a5ea8;
 	--rendi-chart-4: #c14f4f;
+	--rendi-chart-5: #3e6fa8;
+	--rendi-chart-6: #4e8a3c;
+	--rendi-chart-7: #a64d7e;
 	--rendi-good: #067a50;
 	--rendi-bad: #b3372f;
 }
@@ -85,6 +94,9 @@
 	--rendi-chart-2: #159c88;
 	--rendi-chart-3: #7d6bd9;
 	--rendi-chart-4: #c96262;
+	--rendi-chart-5: #5a8ac6;
+	--rendi-chart-6: #5f9c42;
+	--rendi-chart-7: #c56b9b;
 	--rendi-good: #2aa470;
 	--rendi-bad: #d96459;
 }

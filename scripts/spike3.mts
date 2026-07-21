@@ -26,10 +26,10 @@ const runs: [string, Record<string, string>][] = [
 ];
 
 for (const [label, values] of runs) {
-	const { rows, elapsedMs } = await executeInstrument(client, spec, values);
+	const { rows, stats } = await executeInstrument(client, spec, values);
 	const commits = rows.reduce((sum, row) => sum + Number(row.commits ?? 0), 0);
 	console.log(
-		`${label}: ${rows.length} day buckets, ${commits} commits, ${elapsedMs}ms`,
+		`${label}: ${rows.length} day buckets, ${commits} commits, ${stats.elapsedMs}ms (server ${stats.serverElapsedMs}ms, read ${stats.rowsRead} rows)`,
 	);
 }
 

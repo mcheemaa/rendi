@@ -1,5 +1,6 @@
-import { describe, expect, it } from "vitest";
-import { resolveQueryParams } from "./exec.ts";
+import type { ClickHouseClient } from "@clickhouse/client";
+import { describe, expect, it, vi } from "vitest";
+import { executeInstrument, resolveQueryParams } from "./exec.ts";
 
 const now = new Date("2026-07-19T12:00:00Z");
 
@@ -88,5 +89,39 @@ describe("resolveQueryParams", () => {
 		};
 		const resolved = resolveQueryParams(exotic, {}, now);
 		expect(resolved.floor).toBe(0.5);
+	});
+});
+
+describe("executeInstrument", () => {
+	it("maps the JSON envelope to columns, rows, and server stats", async () => {
+		const query = vi.fn().mockResolvedValue({
+			json: async () => ({
+				meta: [
+					{ name: "day", type: "Date" },
+					{ name: "commits", type: "UInt64" },
+				],
+				data: [{ day: "2026-07-01", commits: "42" }],
+				rows: 1,
+				statistics: { elapsed: 0.0071, rows_read: 12412, bytes_read: 1301234 },
+			}),
+		});
+		const client = { query } as unknown as ClickHouseClient;
+
+		const result = await executeInstrument(client, spec, {});
+
+		expect(result.columns).toEqual([
+			{ name: "day", type: "Date" },
+			{ name: "commits", type: "UInt64" },
+		]);
+		expect(result.rows).toEqual([{ day: "2026-07-01", commits: "42" }]);
+		expect(result.stats.serverElapsedMs).toBe(7);
+		expect(result.stats.rowsRead).toBe(12412);
+		expect(result.stats.bytesRead).toBe(1301234);
+		expect(result.stats.elapsedMs).toBeGreaterThanOrEqual(0);
+
+		const call = query.mock.calls[0][0];
+		expect(call.format).toBe("JSON");
+		expect(call.clickhouse_settings.max_result_rows).toBe("10000");
+		expect(call.clickhouse_settings.max_result_bytes).toBe("52428800");
 	});
 });

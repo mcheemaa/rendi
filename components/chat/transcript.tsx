@@ -16,14 +16,16 @@ import {
 } from "@/components/ai-elements/reasoning";
 import { InstrumentCard } from "@/components/chat/instrument-card";
 import { QueryDataCard } from "@/components/chat/query-data-card";
-import { instrumentSpec } from "@/lib/rendi/instrument";
+import { persistedInstrumentSpec } from "@/lib/rendi/instrument";
 
 export function Transcript({
 	messages,
+	conversationId,
 	streamingMessageId,
 	pending = false,
 }: {
 	messages: UIMessage[];
+	conversationId: string;
 	streamingMessageId?: string;
 	pending?: boolean;
 }) {
@@ -35,6 +37,7 @@ export function Transcript({
 						<MessageContent>
 							<Parts
 								message={message}
+								conversationId={conversationId}
 								streaming={message.id === streamingMessageId}
 							/>
 						</MessageContent>
@@ -57,9 +60,11 @@ export function Transcript({
 
 function Parts({
 	message,
+	conversationId,
 	streaming,
 }: {
 	message: UIMessage;
+	conversationId: string;
 	streaming: boolean;
 }) {
 	return (
@@ -119,12 +124,13 @@ function Parts({
 					);
 				}
 				if (part.type === "data-instrument") {
-					const parsed = instrumentSpec.safeParse(part.data);
+					const parsed = persistedInstrumentSpec.safeParse(part.data);
 					if (!parsed.success) return null;
 					const data = part.data as { id?: string; version?: number };
 					return (
 						<InstrumentCard
 							key={key}
+							conversationId={conversationId}
 							instrument={{
 								...parsed.data,
 								id: data.id ?? key,

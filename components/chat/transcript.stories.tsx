@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import type { UIMessage } from "ai";
 import { expect, userEvent, within } from "storybook/test";
+import { installExecMock } from "@/components/instrument/story-fixtures";
 import { Transcript } from "./transcript";
 
 // Trimmed from a real persisted exchange (chat rendi-caps-1784519945).
@@ -78,11 +79,14 @@ const meta = {
 		},
 	},
 	decorators: [
-		(Story) => (
-			<div className="flex h-svh flex-col bg-background">
-				<Story />
-			</div>
-		),
+		(Story) => {
+			installExecMock();
+			return (
+				<div className="flex h-svh flex-col bg-background">
+					<Story />
+				</div>
+			);
+		},
 	],
 } satisfies Meta<typeof Transcript>;
 
@@ -92,6 +96,7 @@ type Story = StoryObj<typeof meta>;
 export const Pending: Story = {
 	args: {
 		messages: [realExchange[0]],
+		conversationId: "storybook",
 		pending: true,
 	},
 	play: async ({ canvasElement }) => {
@@ -101,7 +106,7 @@ export const Pending: Story = {
 };
 
 export const RealExchange: Story = {
-	args: { messages: realExchange },
+	args: { messages: realExchange, conversationId: "storybook" },
 	play: async ({ canvasElement }) => {
 		const canvas = within(canvasElement);
 		await expect(
@@ -109,7 +114,8 @@ export const RealExchange: Story = {
 		).toBeVisible();
 		await expect(canvas.getByText("Top authors by commit count")).toBeVisible();
 		await userEvent.click(canvas.getByText("Looked at the data"));
-		await expect(await canvas.findByText("Matt Aitken")).toBeVisible();
+		// The name also paints into the live chart's axis, so match all.
+		await expect((await canvas.findAllByText("Matt Aitken"))[0]).toBeVisible();
 		await expect(
 			canvas.getByText(/spans 2022-11-30 to 2026-07-19/),
 		).toBeVisible();
