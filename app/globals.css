@@ -145,3 +145,9 @@
 		@apply font-sans;
 	}
 }
+
+@keyframes caret {
+	50% {
+		opacity: 0;
+	}
+}
