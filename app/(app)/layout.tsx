@@ -1,3 +1,4 @@
+import { fetchConversationPage, findConversations } from "@/app/actions";
 import { AppShell } from "@/components/shell/app-shell";
 import { listConversations } from "@/lib/db/queries";
 
@@ -8,6 +9,14 @@ export default async function AppLayout({
 }: {
 	children: React.ReactNode;
 }) {
-	const conversations = await listConversations();
-	return <AppShell conversations={conversations}>{children}</AppShell>;
+	const page = await listConversations();
+	return (
+		<AppShell
+			conversations={page.items.map(({ id, title }) => ({ id, title }))}
+			cursor={page.cursor}
+			actions={{ loadPage: fetchConversationPage, search: findConversations }}
+		>
+			{children}
+		</AppShell>
+	);
 }

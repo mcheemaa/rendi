@@ -3,8 +3,11 @@
 import { Moon, PanelLeft, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
-import { useEffect, useState } from "react";
-import type { ConversationRef } from "@/components/shell/app-shell";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type {
+	ConversationActions,
+	ConversationRef,
+} from "@/components/shell/app-shell";
 import {
 	Command,
 	CommandDialog,
@@ -20,19 +23,26 @@ import { useSidebar } from "@/components/ui/sidebar";
 
 export function CommandPalette({
 	conversations,
+	actions,
+	open,
+	onOpenChange,
 }: {
 	conversations: ConversationRef[];
+	actions: ConversationActions;
+	open: boolean;
+	onOpenChange: (open: boolean) => void;
 }) {
-	const [open, setOpen] = useState(false);
 	const router = useRouter();
 	const { resolvedTheme, setTheme } = useTheme();
 	const { toggleSidebar } = useSidebar();
+	const [query, setQuery] = useState("");
+	const [fetched, setFetched] = useState<ConversationRef[]>([]);
 
 	useEffect(() => {
 		const onKeyDown = (event: KeyboardEvent) => {
 			if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
 				event.preventDefault();
-				setOpen((current) => !current);
+				onOpenChange(!open);
 			}
 			if (
 				(event.metaKey || event.ctrlKey) &&
@@ -45,17 +55,44 @@ export function CommandPalette({
 		};
 		window.addEventListener("keydown", onKeyDown);
 		return () => window.removeEventListener("keydown", onKeyDown);
-	}, [router]);
+	}, [router, open, onOpenChange]);
+
+	// The palette reaches past the loaded page: typing pulls server matches
+	// into the pool, and Command's own filter ranks the union.
+	const searchSeq = useRef(0);
+	useEffect(() => {
+		const trimmed = query.trim();
+		if (!trimmed || !open) return;
+		const seq = ++searchSeq.current;
+		const timer = setTimeout(async () => {
+			const found = await actions.search(trimmed);
+			if (seq === searchSeq.current) setFetched(found);
+		}, 250);
+		return () => clearTimeout(timer);
+	}, [query, open, actions]);
+
+	const pool = useMemo(() => {
+		const seen = new Set(conversations.map((row) => row.id));
+		return [...conversations, ...fetched.filter((row) => !seen.has(row.id))];
+	}, [conversations, fetched]);
 
 	const run = (action: () => void) => {
-		setOpen(false);
+		onOpenChange(false);
 		action();
 	};
 
 	return (
-		<CommandDialog open={open} onOpenChange={setOpen} title="Command palette">
+		<CommandDialog
+			open={open}
+			onOpenChange={onOpenChange}
+			title="Command palette"
+		>
 			<Command>
-				<CommandInput placeholder="Search conversations, actions…" />
+				<CommandInput
+					placeholder="Search conversations, actions…"
+					value={query}
+					onValueChange={setQuery}
+				/>
 				<CommandList>
 					<CommandEmpty>Nothing matches.</CommandEmpty>
 					<CommandGroup heading="Actions">
@@ -83,9 +120,9 @@ export function CommandPalette({
 							Toggle sidebar
 						</CommandItem>
 					</CommandGroup>
-					{conversations.length > 0 ? (
+					{pool.length > 0 ? (
 						<CommandGroup heading="Conversations">
-							{conversations.map((conversation) => (
+							{pool.map((conversation) => (
 								<CommandItem
 									key={conversation.id}
 									value={conversation.id}
