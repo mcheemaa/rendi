@@ -18,10 +18,27 @@ function instrument(id: string): CanvasBlock {
 		frame: { x: 48, y: 48, w: 560, h: 320, z: 1 },
 		instrument: {
 			title: "Daily commits",
-			sql: "SELECT 1",
-			params: [],
+			sql: "SELECT {window:String}",
+			params: [
+				{
+					name: "window",
+					type: "String",
+					control: "text" as const,
+					defaultValue: "30d",
+				},
+			],
 		},
 		paramState: { window: "30d" },
+	};
+}
+
+function select(name: string, defaultValue: string, options: string[]) {
+	return {
+		name,
+		type: "String",
+		control: "select" as const,
+		defaultValue,
+		options,
 	};
 }
 
@@ -123,38 +140,71 @@ describe("the reducer", () => {
 	});
 
 	it("reconciles paramState against the new spec on update_instrument", () => {
-		const seeded = applyOps(seed(instrument("i1")), {
+		const specA = {
+			title: "Trips over time",
+			sql: "SELECT {from:DateTime}, {window:String}",
+			params: [
+				select("window", "90d", ["30d", "90d"]),
+				{
+					name: "from",
+					type: "DateTime",
+					control: "timerange" as const,
+					defaultValue: "now-30d",
+				},
+			],
+		};
+		const specB = {
+			title: "Trips over time",
+			sql: "SELECT {month:String}, {window:String}",
+			params: [
+				select("window", "90d", ["30d", "90d"]),
+				select("month", "All", ["All", "2015-07"]),
+			],
+		};
+		let doc = applyOps(seed(instrument("i1")), {
+			op: "update_instrument",
+			id: "i1",
+			instrument: specA,
+		});
+		doc = applyOps(doc, {
 			op: "update_params",
 			id: "i1",
 			values: { from: "1970-01-01" },
 		});
-		const doc = applyOps(seeded, {
+		doc = applyOps(doc, {
 			op: "update_instrument",
 			id: "i1",
-			instrument: {
-				title: "Trips over time",
-				sql: "SELECT {month:String}, {window:String}",
-				params: [
-					{
-						name: "window",
-						type: "String",
-						control: "select",
-						defaultValue: "90d",
-						options: ["30d", "90d"],
-					},
-					{
-						name: "month",
-						type: "String",
-						control: "select",
-						defaultValue: "All",
-						options: ["All", "2015-07"],
-					},
-				],
-			},
+			instrument: specB,
 		});
 		const block = doc.blocks[0];
 		if (block.kind !== "instrument") throw new Error("wrong kind");
 		expect(block.paramState).toEqual({ window: "30d", month: "All" });
+	});
+
+	it("resets a select whose steered value the new options no longer offer", () => {
+		const doc = applyOps(seed(instrument("i1")), {
+			op: "update_instrument",
+			id: "i1",
+			instrument: {
+				title: "Trips",
+				sql: "SELECT {window:String}",
+				params: [select("window", "90d", ["7d", "90d"])],
+			},
+		});
+		const block = doc.blocks[0];
+		if (block.kind !== "instrument") throw new Error("wrong kind");
+		expect(block.paramState).toEqual({ window: "90d" });
+	});
+
+	it("ignores update_params for names the spec does not declare", () => {
+		const doc = applyOps(seed(instrument("i1")), {
+			op: "update_params",
+			id: "i1",
+			values: { bogus: "x" },
+		});
+		const block = doc.blocks[0];
+		if (block.kind !== "instrument") throw new Error("wrong kind");
+		expect(block.paramState).toEqual({ window: "30d" });
 	});
 });
 

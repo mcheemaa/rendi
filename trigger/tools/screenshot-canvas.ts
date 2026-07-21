@@ -17,9 +17,13 @@ export const screenshotCanvas = tool({
 	execute: async ({ theme }) => {
 		const turn = turnContext();
 		if (!turn) throw new Error("screenshot-canvas outside a turn");
-		const base = process.env.RENDI_APP_URL ?? "http://localhost:3000";
+		const base = process.env.RENDI_APP_URL;
+		if (!base && process.env.NODE_ENV === "production") {
+			throw new Error("RENDI_APP_URL must be set");
+		}
+		const origin = base ?? "http://localhost:3000";
 		const token = mintRenderToken(turn.conversationId);
-		const url = `${base}/internal/canvas/${turn.conversationId}/render?token=${token}&theme=${theme}`;
+		const url = `${origin}/internal/canvas/${turn.conversationId}/render?token=${token}&theme=${theme}`;
 
 		// Imported at call time so the task bundle stays lean until the agent
 		// actually looks.

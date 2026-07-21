@@ -46,7 +46,7 @@ const CSP = [
 	"style-src 'unsafe-inline' https://fonts.googleapis.com",
 	"font-src https://fonts.gstatic.com",
 	"script-src 'unsafe-inline'",
-	"img-src data: https:",
+	`img-src data: https:${process.env.NODE_ENV === "development" ? " http://localhost:3000" : ""}`,
 ].join("; ");
 
 function buildSrcdoc(html: string): string {

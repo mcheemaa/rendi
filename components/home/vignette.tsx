@@ -111,9 +111,9 @@ export function Vignette({
 						/>
 					) : null}
 				</div>
-				{/* Lands tucked over the bars; the settle runs on transform, the
-				    same property and clock as the cursor, so the drag stays
-				    frame-locked instead of animating layout on its own. */}
+				{/* Lands tucked over the bars; the settle animates translate on
+				    the same clock and easing as the cursor's transform, so the
+				    drag stays frame-locked instead of animating layout. */}
 				<div
 					className={cn(
 						"absolute top-32 left-[118px] h-[88px] w-[186px] overflow-hidden rounded-[10px] border bg-card",

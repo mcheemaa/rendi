@@ -136,8 +136,8 @@ export const canvasOps = pgTable(
 	],
 );
 
-// Generated image bytes live here, base64 in a text column so every driver
-// (Neon HTTP included) round-trips them untouched; the world only ever sees
+// Generated image bytes live here, base64 in a text column so any driver
+// round-trips them untouched; the world only ever sees
 // the /api/images/[id] URL, so swapping to blob storage at deploy touches
 // nothing downstream.
 export const images = pgTable(

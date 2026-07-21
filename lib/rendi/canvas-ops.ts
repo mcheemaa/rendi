@@ -140,24 +140,35 @@ function applyOne(doc: CanvasDoc, op: CanvasOp): CanvasDoc {
 		case "update_params":
 			return {
 				...doc,
-				blocks: doc.blocks.map((block) =>
-					block.id === op.id && block.kind === "instrument"
-						? { ...block, paramState: { ...block.paramState, ...op.values } }
-						: block,
-				),
+				blocks: doc.blocks.map((block) => {
+					if (block.id !== op.id || block.kind !== "instrument") return block;
+					// Only declared params are steerable; anything else is inert.
+					const declared = new Set(
+						block.instrument.params.map((param) => param.name),
+					);
+					const values = Object.fromEntries(
+						Object.entries(op.values).filter(([name]) => declared.has(name)),
+					);
+					return { ...block, paramState: { ...block.paramState, ...values } };
+				}),
 			};
 		case "update_instrument":
 			return {
 				...doc,
 				blocks: doc.blocks.map((block) => {
 					if (block.id !== op.id || block.kind !== "instrument") return block;
-					// Reconcile steering so a stale value from a retired
-					// schema can never haunt a redesigned instrument.
+					// Drop params the new spec retired; default params it
+					// introduced. A select keeps its value only if the new
+					// options still offer it.
 					const paramState = Object.fromEntries(
-						op.instrument.params.map((param) => [
-							param.name,
-							block.paramState[param.name] ?? param.defaultValue,
-						]),
+						op.instrument.params.map((param) => {
+							const prior = block.paramState[param.name];
+							const keep =
+								prior !== undefined &&
+								(param.control !== "select" ||
+									(param.options ?? []).includes(prior));
+							return [param.name, keep ? prior : param.defaultValue];
+						}),
 					);
 					return { ...block, instrument: op.instrument, paramState };
 				}),

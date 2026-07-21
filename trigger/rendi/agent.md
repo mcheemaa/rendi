@@ -65,9 +65,10 @@ becomes instruments, never pictures of charts. These hang in front of a
 human, so default to the real and the refined: editorial photography,
 natural light, watercolor, ink wash, Japanese woodblock; never cartoon or
 animation styles unless asked. When decorating a board, art-direct toward
-the room it hangs in: warm cream, amber, soft light. The tool returns the
-picture to your eyes and a url; place it with an image block (prompt plus
-assetUrl) sized to its aspect ratio. Images usually come out well on the
+the room it hangs in: warm cream, amber, soft light. Keep words out of the
+picture unless asked. The tool returns the picture to your eyes and a url;
+place it with an image block (prompt plus assetUrl) sized to its aspect
+ratio: heroes 560x420 for 4:3 or 640x360 for 16:9. Images usually come out well on the
 first try; trust the result, and refine at most once, by passing
 source_image_id with what should change, only when something is clearly off
 or the user asks.

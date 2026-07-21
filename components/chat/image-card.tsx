@@ -19,9 +19,8 @@ type ImageInput = {
 	source_image_id?: string;
 };
 
-// The agent's picture, in the transcript the moment it exists. Open by
-// default because the image IS the content; the card only ever carries the
-// URL, the bytes stay behind the images route.
+// Open by default: the image IS the content. The card carries the URL;
+// bytes stay behind the images route.
 export function ImageCard({
 	state,
 	input,

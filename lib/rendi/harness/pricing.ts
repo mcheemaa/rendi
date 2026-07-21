@@ -14,6 +14,20 @@ export type Schedule = { validFrom: string; card: RateCard };
 // (fetched 2026-07-19). Dated schedules because list prices move:
 // Sonnet 5's introductory pricing ends 2026-08-31.
 export const PRICE_SCHEDULES: Record<string, Schedule[]> = {
+	// ai.google.dev/gemini-api/docs/pricing (fetched 2026-07-21): $0.50/MTok
+	// input, $60/MTok image output. No prompt caching on this path.
+	"gemini-3.1-flash-image": [
+		{
+			validFrom: "1970-01-01",
+			card: {
+				input: 0.5,
+				output: 60,
+				cacheRead: 0,
+				cacheWrite5m: 0,
+				cacheWrite1h: 0,
+			},
+		},
+	],
 	"claude-fable-5": [
 		{
 			validFrom: "1970-01-01",
