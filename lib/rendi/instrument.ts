@@ -1,13 +1,71 @@
 import { z } from "zod";
 
+// Legacy persisted payloads carry this exact shape under `chart`.
 const chartShape = z.object({
 	type: z.enum(["bar", "line", "area"]),
 	xField: z.string(),
 	yField: z.string(),
 });
 
-export const present = z.discriminatedUnion("kind", [
-	chartShape.extend({ kind: z.literal("chart") }),
+const cartesian = z
+	.object({
+		kind: z.literal("chart"),
+		type: z.enum(["bar", "line", "area", "scatter"]),
+		xField: z.string(),
+		yField: z
+			.union([z.string(), z.array(z.string()).min(1)])
+			.describe("One measure column, or several columns for multi-series."),
+		seriesField: z
+			.string()
+			.optional()
+			.describe(
+				"A column whose values split rows into series (long format from GROUP BY two dimensions). Requires a single yField. At most 7 series.",
+			),
+	})
+	.superRefine((chart, ctx) => {
+		if (chart.seriesField && Array.isArray(chart.yField)) {
+			ctx.addIssue({
+				code: "custom",
+				message: "seriesField needs a single yField, not a list",
+			});
+		}
+	});
+
+const pie = z.object({
+	kind: z.literal("chart"),
+	type: z.literal("pie"),
+	nameField: z.string(),
+	valueField: z.string(),
+});
+
+const heatmap = z.object({
+	kind: z.literal("chart"),
+	type: z.literal("heatmap"),
+	xField: z.string(),
+	yField: z.string(),
+	valueField: z.string(),
+});
+
+const calendar = z.object({
+	kind: z.literal("chart"),
+	type: z.literal("calendar"),
+	dateField: z.string().describe("A Date or DateTime column, one row per day"),
+	valueField: z.string(),
+});
+
+const radar = z.object({
+	kind: z.literal("chart"),
+	type: z.literal("radar"),
+	nameField: z.string().describe("One axis per row; needs at least 3 rows"),
+	valueField: z.string(),
+});
+
+export const present = z.union([
+	cartesian,
+	pie,
+	heatmap,
+	calendar,
+	radar,
 	z.object({ kind: z.literal("table") }),
 ]);
 

@@ -56,12 +56,50 @@ export function InstrumentChart({
 		);
 	}, [present, result, tokens]);
 
+	// A calendar runs wide and short; everything else gets the full well.
+	const height = present.type === "calendar" ? "h-[220px]" : "h-[340px]";
+
+	return (
+		<div className="relative">
+			<div
+				ref={host}
+				className={`${height} w-full`}
+				role="img"
+				aria-label={title}
+			/>
+			{present.type === "pie" ? (
+				<DonutCenter present={present} result={result} />
+			) : null}
+		</div>
+	);
+}
+
+const centerFormat = new Intl.NumberFormat("en-US");
+
+// The spike's donut center: the total lives in the hole, in ink, while the
+// slices carry identity. Pointer events pass through to the chart.
+function DonutCenter({
+	present,
+	result,
+}: {
+	present: Extract<ChartPresent, { type: "pie" }>;
+	result: InstrumentResult;
+}) {
+	const total = result.rows.reduce((sum, row) => {
+		const value = Number(row[present.valueField]);
+		return sum + (Number.isFinite(value) ? value : 0);
+	}, 0);
 	return (
 		<div
-			ref={host}
-			className="h-[340px] w-full"
-			role="img"
-			aria-label={title}
-		/>
+			aria-hidden
+			className="pointer-events-none absolute inset-0 flex -translate-y-[14px] flex-col items-center justify-center"
+		>
+			<span className="font-display text-3xl leading-none">
+				{centerFormat.format(total)}
+			</span>
+			<span className="mt-1.5 font-mono text-[10.5px] uppercase tracking-[0.12em] text-muted-foreground">
+				{present.valueField}
+			</span>
+		</div>
 	);
 }

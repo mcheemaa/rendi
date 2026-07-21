@@ -34,6 +34,29 @@ function respond(body: {
 				"Code: 47. DB::Exception: Unknown identifier 'boom' in scope SELECT boom FROM git.commits.",
 		};
 	}
+	if (sql.includes("label")) {
+		return {
+			columns: [
+				{ name: "label", type: "String" },
+				{ name: "prs", type: "UInt64" },
+			],
+			rows: [
+				{ label: "bug", prs: "428" },
+				{ label: "feature", prs: "316" },
+				{ label: "docs", prs: "194" },
+				{ label: "chore", prs: "132" },
+				{ label: "refactor", prs: "96" },
+				{ label: "test", prs: "71" },
+				{ label: "ci", prs: "38" },
+			],
+			stats: {
+				elapsedMs: 11,
+				serverElapsedMs: 4,
+				rowsRead: 84120,
+				bytesRead: 2417800,
+			},
+		};
+	}
 	if (sql.includes("system.tables")) {
 		return {
 			columns: [

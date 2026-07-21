@@ -77,6 +77,33 @@ export const Live: Story = {
 	},
 };
 
+export const Donut: Story = {
+	args: {
+		instrument: {
+			id: "spec-donut",
+			version: 1,
+			title: "Pull requests by label",
+			sql: "SELECT label, count() AS prs FROM github.pull_request_label GROUP BY label ORDER BY prs DESC LIMIT 8",
+			params: [],
+			present: {
+				kind: "chart" as const,
+				type: "pie" as const,
+				nameField: "label",
+				valueField: "prs",
+			},
+		},
+		conversationId: "storybook",
+	},
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement);
+		const chart = await canvas.findByRole("img");
+		await waitFor(() => expect(chart.querySelector("svg")).toBeTruthy());
+		// The spike's center total: the slices sum lives in the donut hole.
+		await expect(canvas.getByText("1,275")).toBeVisible();
+		await waitFor(() => expect(chart).toHaveAccessibleName(/bug/));
+	},
+};
+
 export const PlainTable: Story = {
 	args: {
 		instrument: {
