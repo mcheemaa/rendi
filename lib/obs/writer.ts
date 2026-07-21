@@ -34,7 +34,10 @@ let warned = false;
 
 export function configureWriter(config: WriterConfig): void {
 	explicitConfig = config;
+	const previous = client;
 	client = undefined;
+	warned = false;
+	if (previous) void previous.close().catch(() => {});
 }
 
 function writerClient() {
@@ -42,19 +45,38 @@ function writerClient() {
 	const config = explicitConfig ?? envConfig();
 	if (!config) {
 		client = null;
+		if (!warned) {
+			warned = true;
+			const missing = [
+				!process.env.CLICKHOUSE_URL && "CLICKHOUSE_URL",
+				!process.env.CLICKHOUSE_TELEMETRY_PASSWORD &&
+					"CLICKHOUSE_TELEMETRY_PASSWORD",
+			].filter(Boolean);
+			console.warn(`[telemetry] spans disabled: ${missing.join(", ")} unset`);
+		}
 		return client;
 	}
-	client = createClient({
-		url: config.url,
-		username: config.username ?? "rendi_telemetry_writer",
-		password: config.password,
-		database: config.database ?? "rendi_telemetry",
-		clickhouse_settings: {
-			async_insert: 1,
-			wait_for_async_insert: 0,
-			date_time_input_format: "best_effort",
-		},
-	});
+	// A bad URL throws synchronously inside createClient; telemetry must
+	// never break a turn, so it degrades to disabled instead.
+	try {
+		client = createClient({
+			url: config.url,
+			username: config.username ?? "agent_obs_writer",
+			password: config.password,
+			database: config.database ?? "agent_obs",
+			clickhouse_settings: {
+				async_insert: 1,
+				wait_for_async_insert: 0,
+				date_time_input_format: "best_effort",
+			},
+		});
+	} catch (error) {
+		client = null;
+		if (!warned) {
+			warned = true;
+			console.error("[telemetry] spans disabled: invalid writer config", error);
+		}
+	}
 	return client;
 }
 
@@ -84,15 +106,7 @@ function costColumns(model?: string, usage?: LanguageModelUsage) {
 // Telemetry must never break a turn: failures log and drop.
 export function emitSpan(span: Span): void {
 	const sink = writerClient();
-	if (!sink) {
-		if (!warned) {
-			warned = true;
-			console.warn(
-				"[telemetry] CLICKHOUSE_TELEMETRY_PASSWORD unset, spans disabled",
-			);
-		}
-		return;
-	}
+	if (!sink) return;
 	sink
 		.insert({
 			table: "spans",

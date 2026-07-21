@@ -1,5 +1,6 @@
+import type { TaskSchema } from "@trigger.dev/sdk";
 import type { ChatAgentOptions } from "@trigger.dev/sdk/ai";
-import type { StepResult, ToolSet, UIMessage } from "ai";
+import type { LanguageModelUsage, StepResult, ToolSet, UIMessage } from "ai";
 import { instrumentTools } from "./tools.ts";
 import {
 	beginTurnSpan,
@@ -11,26 +12,27 @@ import {
 } from "./turn.ts";
 import { configureWriter, emitSpan, type WriterConfig } from "./writer.ts";
 
-type AnyAgentOptions = ChatAgentOptions<
-	string,
-	undefined,
-	UIMessage,
-	undefined,
-	ToolSet
->;
-type TurnStartEvent = Parameters<
-	NonNullable<AnyAgentOptions["onTurnStart"]>
->[0];
-type TurnCompleteEvent = Parameters<
-	NonNullable<AnyAgentOptions["onTurnComplete"]>
->[0];
+// The structural minimum each hook needs; every ChatAgentOptions
+// instantiation's events are supersets, so handlers typed against these
+// assign into any instrumented definition.
+type TurnStartBase = { chatId: string; turn: number; runId: string };
+type TurnCompleteBase = TurnStartBase & {
+	newUIMessages: Array<{ role: string }>;
+	responseMessage?: unknown;
+	usage?: LanguageModelUsage;
+	finishReason?: string;
+	stopped?: boolean;
+	continuation?: boolean;
+	error?: unknown;
+};
 
 export type AgentObservabilityOptions = {
 	writer?: WriterConfig;
 	model: () => string;
 	// The host ends the agent span itself when it needs to order other
-	// work (titles, persistence) around the emit; otherwise instrument()
-	// closes the span after onTurnComplete, errors included.
+	// work (persistence, follow-up generations) around the emit;
+	// otherwise instrument() closes the span after onTurnComplete,
+	// errors included.
 	manualTurnEnd?: boolean;
 };
 
@@ -39,15 +41,15 @@ type StreamCallbacks = {
 	onStepFinish?: (step: StepResult<ToolSet>) => void | PromiseLike<void>;
 };
 
-// tools may be a set or a per-turn resolver; both come back instrumented.
-function wrapDefinitionTools(
-	tools: AnyAgentOptions["tools"],
-): AnyAgentOptions["tools"] {
-	if (!tools) return tools;
-	if (typeof tools === "function") {
-		return async (event) => instrumentTools(await tools(event));
-	}
-	return instrumentTools(tools);
+function endFromEvent(event: TurnCompleteBase, error?: unknown): void {
+	endTurnSpan({
+		...event,
+		stopped: event.stopped ?? false,
+		continuation: event.continuation ?? false,
+		input: event.newUIMessages.filter((m) => m.role === "user"),
+		output: event.responseMessage,
+		error: event.error ?? error,
+	});
 }
 
 export function createAgentObservability(options: AgentObservabilityOptions) {
@@ -59,35 +61,55 @@ export function createAgentObservability(options: AgentObservabilityOptions) {
 		turnContext,
 		recordTurnMessages,
 		endTurnSpan,
-		instrument<T extends AnyAgentOptions>(definition: T): T {
+		instrument<
+			TId extends string,
+			TClient extends TaskSchema | undefined,
+			TMsg extends UIMessage,
+			TAction extends TaskSchema | undefined,
+			TTools extends ToolSet,
+		>(
+			definition: ChatAgentOptions<TId, TClient, TMsg, TAction, TTools>,
+		): ChatAgentOptions<TId, TClient, TMsg, TAction, TTools> {
+			const tools = definition.tools;
 			return {
 				...definition,
-				tools: wrapDefinitionTools(definition.tools),
-				onTurnStart: async (event: TurnStartEvent) => {
-					beginTurnSpan(event, model());
-					await definition.onTurnStart?.(event);
+				tools:
+					typeof tools === "function"
+						? async (event: Parameters<typeof tools>[0]) =>
+								instrumentTools(await tools(event))
+						: tools
+							? instrumentTools(tools)
+							: tools,
+				onTurnStart: async (event: TurnStartBase) => {
+					// A telemetry failure must never fail the host's turn.
+					try {
+						beginTurnSpan(event, model());
+					} catch (error) {
+						console.error("[telemetry] beginTurnSpan failed", error);
+					}
+					await definition.onTurnStart?.(
+						event as Parameters<NonNullable<typeof definition.onTurnStart>>[0],
+					);
 				},
-				onTurnComplete: async (event: TurnCompleteEvent) => {
+				onTurnComplete: async (event: TurnCompleteBase) => {
+					const rich = event as Parameters<
+						NonNullable<typeof definition.onTurnComplete>
+					>[0];
 					if (manualTurnEnd) {
-						await definition.onTurnComplete?.(event);
+						await definition.onTurnComplete?.(rich);
 						return;
 					}
 					try {
-						await definition.onTurnComplete?.(event);
+						await definition.onTurnComplete?.(rich);
 					} catch (error) {
-						endTurnSpan({ ...event, error: event.error ?? error });
+						endFromEvent(event, error);
 						throw error;
 					}
-					endTurnSpan({
-						...event,
-						input: event.newUIMessages.filter((m) => m.role === "user"),
-						output: event.responseMessage,
-					});
+					endFromEvent(event);
 				},
 			};
 		},
-		// Weaves TTFT and per-step llm spans into streamText callbacks; the
-		// host's own callbacks keep their original ordering.
+		// The host's own callbacks keep their original ordering.
 		generationTelemetry(callbacks: StreamCallbacks): StreamCallbacks {
 			return {
 				onChunk: (event) => {

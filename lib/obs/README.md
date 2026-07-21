@@ -20,11 +20,13 @@ node --env-file=.env.development.local scripts/telemetry-init.mts
 Instrument the agent in one place:
 
 ```ts
+import { anthropic } from "@ai-sdk/anthropic";
 import { chat } from "@trigger.dev/sdk/ai";
 import { streamText } from "ai";
 import { createAgentObservability } from "@/lib/obs";
 
-const obs = createAgentObservability({ model: () => "claude-opus-4-8" });
+const MODEL = "claude-opus-4-8";
+const obs = createAgentObservability({ model: () => MODEL });
 
 export const myChat = chat.agent(
   obs.instrument({
@@ -35,19 +37,35 @@ export const myChat = chat.agent(
       obs.recordTurnMessages(messages);
       return streamText({
         ...base,
+        model: anthropic(MODEL),
         messages,
         abortSignal: signal,
         ...obs.generationTelemetry(base),
+        // The AI SDK's default stopWhen caps agents at a single step;
+        // end the run only when the model finishes on its own.
+        stopWhen: () => false,
       });
     },
   }),
 );
 ```
 
-That is the whole integration: `instrument()` opens an agent span per
-turn, wraps every tool with a span (args, result, duration, errors), and
-closes the turn span with tokens, cost, and status; `generationTelemetry`
-adds TTFT and one llm span per step with the exact model input.
+`instrument()` opens an agent span per turn, wraps every tool with a span
+(args, result, duration, errors; per-turn tool resolvers included), and
+closes the turn span with tokens, cost, and status, on error paths too;
+`generationTelemetry` adds TTFT and one llm span per step with the model
+input as the host composed it (per-step prepareStep transforms such as
+compaction are not re-captured). This repo's chat task
+(`trigger/chat.ts`) is the reference consumer.
+
+## Runtime shape
+
+One turn is active per worker process (Trigger runs one execution per
+process at a time; the SDK relies on that). All `createAgentObservability`
+instances in a process share one writer and one turn context; when
+several configure a writer, the last configuration wins. Spans emitted
+outside a turn (action handlers, other processes) carry no parent and
+should set `conversationId` explicitly, as this repo's exec route does.
 
 ## Custom span kinds
 
@@ -72,19 +90,29 @@ obs.span({
 
 Costs compute at write time from dated rate cards keyed by model id
 (`pricing.ts`); `cost_known: 0` marks spans priced by no card, never a
-guess. Convention: llm spans carry spend truth, agent spans aggregate
-their children, so rollups sum `WHERE span_kind = 'llm'`.
+guess. The rollup law: agent rows aggregate their in-turn children and
+are never summed; spend truth is every non-agent row with
+`cost_known = 1`, which covers llm steps, turn-adjacent generations like
+titles, and any extension kind that carries usage.
 
 Provider posture: nothing switches on a provider. Models are strings,
 usage flows through the AI SDK's neutral shape, and new providers are new
 rate-card entries, not code.
 
+## Writer configuration
+
+`createAgentObservability({ writer })` or `configureWriter()` accepts
+`{ url, password, username, database }` (defaults `agent_obs_writer` /
+`agent_obs`); without explicit configuration the writer reads
+`CLICKHOUSE_URL` and `CLICKHOUSE_TELEMETRY_PASSWORD`. A misconfigured
+writer disables telemetry with one logged warning; it never fails a turn.
+
 ## Hosts that need ordering control
 
 `createAgentObservability({ manualTurnEnd: true })` leaves closing the
 agent span to you (`obs.endTurnSpan(event)`), for hosts that must order
-persistence or follow-up generations around the emit. This repo's chat
-task is the reference consumer.
+persistence or follow-up generations around the emit. Ending the same
+turn twice emits once.
 
 ## Reading it back
 

@@ -1,7 +1,8 @@
-// Cost convention: llm spans carry the truth; agent spans aggregate
-// their children, so spend rollups sum WHERE span_kind = 'llm', never
-// all kinds. model_prices is ReplacingMergeTree: read with FINAL or
-// argMax after re-provisioning.
+// Cost convention: agent rows aggregate their in-turn children and are
+// never summed; spend truth is every non-agent row with cost_known = 1
+// (llm steps, turn-adjacent generations like titles, and any extension
+// kind that carries usage). model_prices is ReplacingMergeTree: read
+// with FINAL or argMax after re-provisioning.
 export function spansDdl(database: string): string {
 	return `
 CREATE TABLE IF NOT EXISTS ${database}.spans (

@@ -19,6 +19,7 @@ type TurnContext = {
 // One run per worker process and turns are sequential within it, so a
 // module singleton is a safe carrier for the active turn.
 let activeTurn: TurnContext | undefined;
+let lastEnded: { chatId: string; turn: number } | undefined;
 
 export function beginTurnSpan(
 	event: { chatId: string; turn: number; runId: string },
@@ -104,6 +105,16 @@ export function endTurnSpan(event: {
 }): void {
 	const turn = activeTurn;
 	activeTurn = undefined;
+	// The runtime re-fires onTurnComplete on its error path; one turn
+	// gets one agent span regardless.
+	if (
+		!turn &&
+		lastEnded?.chatId === event.chatId &&
+		lastEnded.turn === event.turn
+	) {
+		return;
+	}
+	lastEnded = { chatId: event.chatId, turn: event.turn };
 	const now = performance.now();
 	emitSpan({
 		conversationId: event.chatId,
