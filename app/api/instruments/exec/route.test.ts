@@ -3,9 +3,11 @@ import type { InstrumentResult } from "@/lib/rendi/exec";
 
 const execute = vi.hoisted(() => vi.fn());
 const emitSpan = vi.hoisted(() => vi.fn());
+const persistExecution = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
 
 vi.mock("@/lib/rendi/exec", () => ({ executeInstrument: execute }));
 vi.mock("@/lib/rendi/harness/telemetry", () => ({ emitSpan }));
+vi.mock("@/lib/rendi/harness/readback", () => ({ persistExecution }));
 vi.mock("@/lib/rendi/clickhouse", () => ({ clickhouseReader: () => ({}) }));
 
 import { POST } from "./route.ts";
@@ -27,6 +29,7 @@ function post(body: unknown) {
 
 const valid = {
 	spec: {
+		title: "Daily commits",
 		sql: "SELECT toDate(ts) AS day FROM git.commits WHERE ts >= {from:DateTime}",
 		params: [
 			{
@@ -37,13 +40,16 @@ const valid = {
 			},
 		],
 	},
+	present: { kind: "chart", type: "bar", xField: "day", yField: "commits" },
 	values: { from: "now-7d" },
-	context: { conversationId: "conv-1", instrumentId: "inst-1" },
+	context: { conversationId: "conv-1", instrumentId: "inst-1", version: 2 },
 };
 
 beforeEach(() => {
 	execute.mockReset();
 	emitSpan.mockReset();
+	persistExecution.mockClear();
+	persistExecution.mockResolvedValue(undefined);
 });
 
 describe("POST /api/instruments/exec", () => {
@@ -64,6 +70,46 @@ describe("POST /api/instruments/exec", () => {
 		expect(span.attrs).toEqual({ instrument_id: "inst-1" });
 		expect(span.sqlHash).toHaveLength(16);
 		expect(span.readRows).toBe(7641);
+
+		expect(persistExecution).toHaveBeenCalledWith({
+			conversationId: "conv-1",
+			instrumentId: "inst-1",
+			title: "Daily commits",
+			sqlText: valid.spec.sql,
+			params: valid.spec.params,
+			present: valid.present,
+			version: 2,
+			values: { from: "now-7d" },
+			steer: undefined,
+		});
+	});
+
+	it("captures a steer as an op alongside the execution", async () => {
+		execute.mockResolvedValue(result);
+		const response = await post({
+			...valid,
+			steer: { param: "from", old: "now-30d", new: "now-7d" },
+		});
+
+		expect(response.status).toBe(200);
+		expect(persistExecution.mock.calls[0][0].steer).toEqual({
+			param: "from",
+			old: "now-30d",
+			new: "now-7d",
+		});
+	});
+
+	it("records the steer even when the query fails, and readback failures never fail an execution", async () => {
+		execute.mockRejectedValue(new Error("boom"));
+		persistExecution.mockRejectedValue(new Error("neon down"));
+		const response = await post({
+			...valid,
+			steer: { param: "from", old: "now-30d", new: "now-7d" },
+		});
+
+		expect(response.status).toBe(200);
+		expect(await response.json()).toEqual({ error: "Error: boom" });
+		expect(persistExecution).toHaveBeenCalledOnce();
 	});
 
 	it("returns ClickHouse errors in-band with an error span", async () => {

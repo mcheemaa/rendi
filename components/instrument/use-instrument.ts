@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { InstrumentResult } from "@/lib/rendi/exec";
-import type { Instrument } from "@/lib/rendi/instrument";
+import { type Instrument, presentOf } from "@/lib/rendi/instrument";
+
+type Steer = { param: string; old: string; new: string };
 
 export type InstrumentState = {
 	values: Record<string, string>;
@@ -35,8 +37,8 @@ export function useInstrument(
 	instrumentRef.current = instrument;
 
 	const execute = useCallback(
-		async (nextValues: Record<string, string>) => {
-			const { id, sql, params } = instrumentRef.current;
+		async (nextValues: Record<string, string>, steer?: Steer) => {
+			const current = instrumentRef.current;
 			const seq = ++requestSeq.current;
 			setRunning(true);
 			try {
@@ -44,9 +46,19 @@ export function useInstrument(
 					method: "POST",
 					headers: { "content-type": "application/json" },
 					body: JSON.stringify({
-						spec: { sql, params },
+						spec: {
+							title: current.title,
+							sql: current.sql,
+							params: current.params,
+						},
+						present: presentOf(current),
 						values: nextValues,
-						context: { conversationId, instrumentId: id },
+						context: {
+							conversationId,
+							instrumentId: current.id,
+							version: current.version,
+						},
+						...(steer ? { steer } : {}),
 					}),
 				});
 				const body = (await response.json()) as
@@ -84,10 +96,12 @@ export function useInstrument(
 
 	const steer = useCallback(
 		(name: string, value: string) => {
+			// The op the agent reads next turn: property 4 starts here.
+			const old = valuesRef.current[name] ?? "";
 			const next = { ...valuesRef.current, [name]: value };
 			valuesRef.current = next;
 			setValues(next);
-			execute(next);
+			execute(next, { param: name, old, new: value });
 		},
 		[execute],
 	);

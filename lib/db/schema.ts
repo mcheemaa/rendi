@@ -1,5 +1,6 @@
 import type { UIMessage } from "ai";
 import {
+	index,
 	integer,
 	jsonb,
 	pgTable,
@@ -8,6 +9,7 @@ import {
 	timestamp,
 	unique,
 } from "drizzle-orm/pg-core";
+import type { InstrumentSpec, Present } from "../rendi/instrument";
 
 export const conversations = pgTable("conversations", {
 	id: text("id").primaryKey(),
@@ -47,5 +49,51 @@ export const messages = pgTable(
 	],
 );
 
+export const instruments = pgTable("instruments", {
+	id: text("id").primaryKey(),
+	conversationId: text("conversation_id")
+		.notNull()
+		.references(() => conversations.id),
+	title: text("title").notNull(),
+	sql: text("sql").notNull(),
+	params: jsonb("params").notNull().$type<InstrumentSpec["params"]>(),
+	present: jsonb("present").$type<Present>(),
+	version: integer("version").notNull().default(1),
+	// What the last execution actually ran with, which is what the user sees.
+	currentValues: jsonb("current_values")
+		.notNull()
+		.$type<Record<string, string>>(),
+	createdAt: timestamp("created_at", { withTimezone: true })
+		.notNull()
+		.defaultNow(),
+	updatedAt: timestamp("updated_at", { withTimezone: true })
+		.notNull()
+		.defaultNow(),
+});
+
+// Append-only steering log; no foreign keys so a late or replayed op can
+// never fail the write. seen_turn marks delivery to the agent, at-least-once.
+export const instrumentOps = pgTable(
+	"instrument_ops",
+	{
+		id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+		conversationId: text("conversation_id").notNull(),
+		instrumentId: text("instrument_id").notNull(),
+		actor: text("actor").notNull(),
+		param: text("param").notNull(),
+		oldValue: text("old_value").notNull(),
+		newValue: text("new_value").notNull(),
+		seenTurn: integer("seen_turn"),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.notNull()
+			.defaultNow(),
+	},
+	(table) => [
+		index("instrument_ops_unseen_idx").on(table.conversationId, table.seenTurn),
+	],
+);
+
 export type ConversationRow = typeof conversations.$inferSelect;
 export type MessageRow = typeof messages.$inferSelect;
+export type InstrumentRow = typeof instruments.$inferSelect;
+export type InstrumentOpRow = typeof instrumentOps.$inferSelect;

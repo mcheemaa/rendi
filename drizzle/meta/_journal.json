@@ -8,6 +8,13 @@
       "when": 1784517968979,
       "tag": "0000_harness-core",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1784600158831,
+      "tag": "0001_readback",
+      "breakpoints": true
     }
   ]
 }

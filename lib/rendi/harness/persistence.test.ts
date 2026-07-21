@@ -1,15 +1,13 @@
-import { readFileSync } from "node:fs";
-import { PGlite } from "@electric-sql/pglite";
 import type { TurnCompleteEvent, TurnStartEvent } from "@trigger.dev/sdk/ai";
 import type { UIMessage } from "ai";
-import { drizzle } from "drizzle-orm/pglite";
+import type { drizzle } from "drizzle-orm/pglite";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import * as schema from "../../db/schema.ts";
 import {
 	persistChatStart,
 	persistTurnComplete,
 	persistTurnStart,
 } from "./persistence.ts";
+import { createTestDb } from "./test-db.ts";
 
 const holder = vi.hoisted(() => ({ db: undefined as unknown }));
 
@@ -76,12 +74,7 @@ const a1 = msg("a1", "assistant", "partial answer");
 const u2 = msg("u2", "user", "third question");
 
 beforeEach(async () => {
-	const client = new PGlite();
-	const migration = readFileSync("drizzle/0000_harness-core.sql", "utf8");
-	for (const statement of migration.split("--> statement-breakpoint")) {
-		await client.exec(statement);
-	}
-	holder.db = drizzle(client, { schema });
+	holder.db = await createTestDb();
 });
 
 describe("chat start", () => {

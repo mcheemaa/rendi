@@ -10,6 +10,11 @@ import {
 	persistTurnStart,
 } from "@/lib/rendi/harness/persistence";
 import {
+	instrumentStateBlock,
+	markOpsSeen,
+	withInstrumentState,
+} from "@/lib/rendi/harness/readback";
+import {
 	beginTurnSpan,
 	emitGenerationSpan,
 	endTurnSpan,
@@ -46,6 +51,10 @@ export const rendiChat = chat.agent({
 		} catch (error) {
 			persistError = error;
 		}
+		// At-least-once: a marking failure just re-delivers next turn.
+		await markOpsSeen(event.chatId, event.turn).catch((error) =>
+			console.error("[readback] mark seen failed", error),
+		);
 		const titleParent = turnContext()?.spanId;
 		endTurnSpan({
 			...event,
@@ -73,7 +82,13 @@ export const rendiChat = chat.agent({
 			onChunk?: (event: unknown) => void | PromiseLike<void>;
 			onStepFinish?: (step: StepResult<ToolSet>) => void | PromiseLike<void>;
 		};
-		const cachedMessages = addCacheBreaks(messages);
+		// Property 4: the user's hands on the instruments, injected at the tail
+		// so the cached conversation prefix stays byte-identical.
+		const turn = turnContext();
+		const state = turn
+			? await instrumentStateBlock(turn.conversationId)
+			: undefined;
+		const cachedMessages = addCacheBreaks(withInstrumentState(messages, state));
 		recordTurnMessages(cachedMessages);
 		return streamText({
 			...base,
