@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { useEffect, useRef } from "react";
 import { Shimmer } from "@/components/ai-elements/shimmer";
 import type { CanvasBlock } from "@/lib/rendi/canvas";
 
@@ -11,8 +12,20 @@ type ImageBlock = Extract<CanvasBlock, { kind: "image" }>;
 // unoptimized: assets come from whatever CDN the uploader chose, and the
 // optimizer must not need a host allowlist per vendor swap.
 export function ImageBlockBody({ block }: { block: ImageBlock }) {
+	const host = useRef<HTMLElement>(null);
+	// A generating block is as ready as it will get this render; a real
+	// asset stamps on load.
+	useEffect(() => {
+		if (!block.assetUrl && host.current) {
+			host.current.dataset.blockReady = "true";
+		}
+	}, [block.assetUrl]);
+	const ready = () => {
+		if (host.current) host.current.dataset.blockReady = "true";
+	};
+
 	return (
-		<figure className="flex h-full flex-col">
+		<figure ref={host} className="flex h-full flex-col">
 			{block.assetUrl ? (
 				<div className="relative min-h-0 flex-1">
 					<Image
@@ -22,6 +35,7 @@ export function ImageBlockBody({ block }: { block: ImageBlock }) {
 						unoptimized
 						draggable={false}
 						className="object-cover"
+						onLoad={ready}
 					/>
 				</div>
 			) : (

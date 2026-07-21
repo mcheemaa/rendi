@@ -19,6 +19,11 @@ export default defineConfig({
 	},
 	dirs: ["./trigger"],
 	build: {
+		// Playwright resolves at runtime from node_modules: its optional
+		// chromium-bidi requires break the bundler, and the browser binary
+		// could never live in a bundle anyway. Deployed workers add the
+		// playwright build extension when we ship.
+		external: ["playwright", "playwright-core", "chromium-bidi"],
 		extensions: [
 			esbuildPlugin({
 				name: "md-as-text",
