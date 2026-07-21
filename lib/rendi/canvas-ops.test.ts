@@ -121,6 +121,41 @@ describe("the reducer", () => {
 			"Hourly commits",
 		);
 	});
+
+	it("reconciles paramState against the new spec on update_instrument", () => {
+		const seeded = applyOps(seed(instrument("i1")), {
+			op: "update_params",
+			id: "i1",
+			values: { from: "1970-01-01" },
+		});
+		const doc = applyOps(seeded, {
+			op: "update_instrument",
+			id: "i1",
+			instrument: {
+				title: "Trips over time",
+				sql: "SELECT {month:String}, {window:String}",
+				params: [
+					{
+						name: "window",
+						type: "String",
+						control: "select",
+						defaultValue: "90d",
+						options: ["30d", "90d"],
+					},
+					{
+						name: "month",
+						type: "String",
+						control: "select",
+						defaultValue: "All",
+						options: ["All", "2015-07"],
+					},
+				],
+			},
+		});
+		const block = doc.blocks[0];
+		if (block.kind !== "instrument") throw new Error("wrong kind");
+		expect(block.paramState).toEqual({ window: "30d", month: "All" });
+	});
 });
 
 describe("replay", () => {

@@ -62,7 +62,9 @@ function SelectContent({
 	sideOffset = 4,
 	align = "center",
 	alignOffset = 0,
-	alignItemWithTrigger = true,
+	// Anchored, not the macOS selected-item overlay: long preset lists
+	// launch the aligned menu far from its trigger.
+	alignItemWithTrigger = false,
 	...props
 }: SelectPrimitive.Popup.Props &
 	Pick<

@@ -149,11 +149,18 @@ function applyOne(doc: CanvasDoc, op: CanvasOp): CanvasDoc {
 		case "update_instrument":
 			return {
 				...doc,
-				blocks: doc.blocks.map((block) =>
-					block.id === op.id && block.kind === "instrument"
-						? { ...block, instrument: op.instrument }
-						: block,
-				),
+				blocks: doc.blocks.map((block) => {
+					if (block.id !== op.id || block.kind !== "instrument") return block;
+					// Reconcile steering so a stale value from a retired
+					// schema can never haunt a redesigned instrument.
+					const paramState = Object.fromEntries(
+						op.instrument.params.map((param) => [
+							param.name,
+							block.paramState[param.name] ?? param.defaultValue,
+						]),
+					);
+					return { ...block, instrument: op.instrument, paramState };
+				}),
 			};
 	}
 }
