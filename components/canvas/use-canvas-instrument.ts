@@ -23,9 +23,13 @@ export function useCanvasInstrument(
 	blockRef.current = block;
 
 	const valuesKey = JSON.stringify(block.paramState);
+	// The spec itself can change under a mounted block: the agent repairing
+	// its own SQL after a look must re-execute here, not only on steering.
+	const specKey = JSON.stringify(block.instrument);
 
 	useEffect(() => {
-		const { id, instrument } = blockRef.current;
+		const { id } = blockRef.current;
+		const instrument = JSON.parse(specKey) as InstrumentBlock["instrument"];
 		const values = JSON.parse(valuesKey) as Record<string, string>;
 		const seq = ++requestSeq.current;
 		let cancelled = false;
@@ -69,7 +73,7 @@ export function useCanvasInstrument(
 		return () => {
 			cancelled = true;
 		};
-	}, [conversationId, valuesKey]);
+	}, [conversationId, valuesKey, specKey]);
 
 	return { result, error, running };
 }

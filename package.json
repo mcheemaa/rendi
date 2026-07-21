@@ -37,6 +37,7 @@
 		"date-fns": "^4.4.0",
 		"drizzle-orm": "^0.45.2",
 		"echarts": "^5.6.0",
+		"image-size": "^2.0.2",
 		"lucide-react": "^1.25.0",
 		"motion": "^12.42.2",
 		"nanoid": "^6.0.0",

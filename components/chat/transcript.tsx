@@ -14,6 +14,7 @@ import {
 	ReasoningContent,
 	ReasoningTrigger,
 } from "@/components/ai-elements/reasoning";
+import { ImageCard } from "@/components/chat/image-card";
 import { InstrumentCard } from "@/components/chat/instrument-card";
 import { QueryDataCard } from "@/components/chat/query-data-card";
 import { ScreenshotCard } from "@/components/chat/screenshot-card";
@@ -136,6 +137,37 @@ function Parts({
 											width?: number;
 											height?: number;
 											pngBase64?: string;
+										})
+									: undefined
+							}
+							errorText={
+								part.state === "output-error" ? part.errorText : undefined
+							}
+						/>
+					);
+				}
+				if (part.type === "tool-generate-image") {
+					return (
+						<ImageCard
+							key={key}
+							state={part.state as ToolUIPart["state"]}
+							input={
+								part.state === "input-available" ||
+								part.state === "output-available" ||
+								part.state === "output-error"
+									? (part.input as {
+											prompt?: string;
+											source_image_id?: string;
+										})
+									: undefined
+							}
+							output={
+								part.state === "output-available"
+									? (part.output as {
+											image_id?: string;
+											url?: string;
+											width?: number;
+											height?: number;
 										})
 									: undefined
 							}

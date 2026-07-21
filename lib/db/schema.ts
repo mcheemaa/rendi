@@ -136,9 +136,33 @@ export const canvasOps = pgTable(
 	],
 );
 
+// Generated image bytes live here, base64 in a text column so every driver
+// (Neon HTTP included) round-trips them untouched; the world only ever sees
+// the /api/images/[id] URL, so swapping to blob storage at deploy touches
+// nothing downstream.
+export const images = pgTable(
+	"images",
+	{
+		id: text("id").primaryKey(),
+		conversationId: text("conversation_id")
+			.notNull()
+			.references(() => conversations.id),
+		prompt: text("prompt").notNull(),
+		mime: text("mime").notNull(),
+		data: text("data").notNull(),
+		width: integer("width").notNull(),
+		height: integer("height").notNull(),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.notNull()
+			.defaultNow(),
+	},
+	(table) => [index("images_conversation_idx").on(table.conversationId)],
+);
+
 export type ConversationRow = typeof conversations.$inferSelect;
 export type MessageRow = typeof messages.$inferSelect;
 export type InstrumentRow = typeof instruments.$inferSelect;
 export type InstrumentOpRow = typeof instrumentOps.$inferSelect;
 export type CanvasRow = typeof canvases.$inferSelect;
 export type CanvasOpRow = typeof canvasOps.$inferSelect;
+export type ImageRow = typeof images.$inferSelect;

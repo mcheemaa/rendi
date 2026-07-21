@@ -21,9 +21,14 @@ export function InstrumentBlockBody({ block }: { block: InstrumentBlock }) {
 	const host = useRef<HTMLDivElement>(null);
 	const shape = presentOf(block.instrument);
 
+	// Error is as terminal as data: the block is fully painted either way,
+	// and the agent's look must be allowed to see a failed card rather than
+	// time out blind on it.
 	useEffect(() => {
-		if (result && host.current) host.current.dataset.blockReady = "true";
-	}, [result]);
+		if ((result || error) && host.current) {
+			host.current.dataset.blockReady = "true";
+		}
+	}, [result, error]);
 
 	return (
 		<div ref={host} className="flex h-full flex-col">

@@ -6,7 +6,7 @@ import { priceUsage } from "./pricing.ts";
 // local research note): one event stream, span_kind discriminated,
 // their metric vocabulary verbatim, and full input/output on every
 // span so the agent can debug itself from its own telemetry.
-export type SpanKind = "agent" | "llm" | "tool" | "query";
+export type SpanKind = "agent" | "llm" | "tool" | "query" | "image";
 
 export type Span = {
 	conversationId: string;

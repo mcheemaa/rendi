@@ -36,6 +36,7 @@ export function ImageBlockBody({ block }: { block: ImageBlock }) {
 						draggable={false}
 						className="object-cover"
 						onLoad={ready}
+						onError={ready}
 					/>
 				</div>
 			) : (
