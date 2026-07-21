@@ -1,5 +1,9 @@
 import { tool } from "ai";
+import { eq } from "drizzle-orm";
 import { z } from "zod";
+import { getDb } from "@/lib/db";
+import { images } from "@/lib/db/schema";
+import { appBase } from "@/lib/rendi/app-url";
 import { turnContext } from "@/lib/rendi/harness/telemetry";
 import { mintRenderToken } from "@/lib/rendi/render-token";
 
@@ -17,11 +21,7 @@ export const screenshotCanvas = tool({
 	execute: async ({ theme }) => {
 		const turn = turnContext();
 		if (!turn) throw new Error("screenshot-canvas outside a turn");
-		const base = process.env.RENDI_APP_URL;
-		if (!base && process.env.NODE_ENV === "production") {
-			throw new Error("RENDI_APP_URL must be set");
-		}
-		const origin = base ?? "http://localhost:3000";
+		const origin = appBase();
 		const token = mintRenderToken(turn.conversationId);
 		const url = `${origin}/internal/canvas/${turn.conversationId}/render?token=${token}&theme=${theme}`;
 
@@ -51,31 +51,67 @@ export const screenshotCanvas = tool({
 			const frame = page.locator("[data-render-root]");
 			const png = await frame.screenshot({ type: "png" });
 			const box = await frame.boundingBox();
+			const width = Math.round(box?.width ?? 0);
+			const height = Math.round(box?.height ?? 0);
+			const id = crypto.randomUUID();
+			await getDb()
+				.insert(images)
+				.values({
+					id,
+					conversationId: turn.conversationId,
+					kind: "look",
+					prompt: `board look, ${theme}, ${width}x${height}`,
+					mime: "image/png",
+					data: png.toString("base64"),
+					width,
+					height,
+				});
 			return {
 				looked: true,
 				theme,
-				width: Math.round(box?.width ?? 0),
-				height: Math.round(box?.height ?? 0),
-				pngBase64: png.toString("base64"),
+				width,
+				height,
+				image_id: id,
+				url: `${appBase()}/api/images/${id}`,
 			};
 		} finally {
 			await browser.close();
 		}
 	},
-	// The picture reaches the model as vision input; the raw base64 never
-	// prints as text. Shape pinned against the installed ai@7 dist.
-	toModelOutput: ({ output }) => ({
-		type: "content",
-		value: [
-			{
-				type: "text",
-				text: `Your canvas in ${output.theme}, ${output.width}x${output.height}, exactly as the user sees it:`,
-			},
-			{
-				type: "file",
-				mediaType: "image/png",
-				data: { type: "data", data: output.pngBase64 },
-			},
-		],
-	}),
+	// Old persisted parts carry inline base64; new ones re-read from the
+	// images table so message payloads stay URL-small.
+	toModelOutput: async ({ output }) => {
+		const legacy = output as typeof output & { pngBase64?: string };
+		let data = legacy.pngBase64;
+		if (!data && output.image_id) {
+			try {
+				const [row] = await getDb()
+					.select({ data: images.data })
+					.from(images)
+					.where(eq(images.id, output.image_id))
+					.limit(1);
+				data = row?.data;
+			} catch {
+				data = undefined;
+			}
+		}
+		return {
+			type: "content",
+			value: [
+				{
+					type: "text",
+					text: `Your canvas in ${output.theme}, ${output.width}x${output.height}, exactly as the user sees it:`,
+				},
+				...(data
+					? [
+							{
+								type: "file" as const,
+								mediaType: "image/png",
+								data: { type: "data" as const, data },
+							},
+						]
+					: []),
+			],
+		};
+	},
 });

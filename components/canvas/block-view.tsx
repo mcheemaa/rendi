@@ -40,11 +40,11 @@ function isTypingTarget(target: EventTarget | null): boolean {
 }
 
 export function BlockView({ block }: { block: CanvasBlock }) {
-	const { store, camera } = useCanvas();
+	const { store, camera, readOnly = false } = useCanvas();
 	const host = useRef<HTMLDivElement>(null);
-	const selected =
-		useCanvasStore(store, (state) => state.selectedId) === block.id;
-	useBlockGestures(store, camera, block.id, block.frame, host);
+	const selectedId = useCanvasStore(store, (state) => state.selectedId);
+	const selected = !readOnly && selectedId === block.id;
+	useBlockGestures(store, camera, block.id, block.frame, host, readOnly);
 
 	const onKeyDown = (event: React.KeyboardEvent) => {
 		// Keys typed into a control inside the block are the control's.
@@ -69,23 +69,42 @@ export function BlockView({ block }: { block: CanvasBlock }) {
 		}
 	};
 
+	const frameStyle = {
+		left: block.frame.x,
+		top: block.frame.y,
+		width: block.frame.w,
+		height: block.frame.h,
+		zIndex: block.frame.z,
+	};
+	const frameClass =
+		"absolute rounded-xl bg-card text-card-foreground ring-1 ring-foreground/10";
+
+	if (readOnly) {
+		return (
+			<div
+				ref={host}
+				data-block-id={block.id}
+				className={frameClass}
+				style={frameStyle}
+			>
+				<div className="h-full overflow-hidden rounded-xl">
+					<BlockBody block={block} selected={false} />
+				</div>
+			</div>
+		);
+	}
+
 	return (
 		<div
 			ref={host}
 			data-block-id={block.id}
 			data-selected={selected || undefined}
 			className={cn(
-				"absolute rounded-xl bg-card text-card-foreground ring-1 ring-foreground/10 transition-shadow",
-				"data-[gesturing]:shadow-lg",
+				frameClass,
+				"transition-shadow data-[gesturing]:shadow-lg",
 				selected && "ring-2 ring-primary/60",
 			)}
-			style={{
-				left: block.frame.x,
-				top: block.frame.y,
-				width: block.frame.w,
-				height: block.frame.h,
-				zIndex: block.frame.z,
-			}}
+			style={frameStyle}
 			// A block is a widget with its own keyboard handling (nudge,
 			// delete): application is the honest role, and the wrapper must be
 			// focusable for those keys to land anywhere.

@@ -1,0 +1,1 @@
+ALTER TABLE "images" ADD COLUMN "kind" text DEFAULT 'generated' NOT NULL;

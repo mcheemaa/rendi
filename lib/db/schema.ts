@@ -147,6 +147,7 @@ export const images = pgTable(
 		conversationId: text("conversation_id")
 			.notNull()
 			.references(() => conversations.id),
+		kind: text("kind").notNull().default("generated"),
 		prompt: text("prompt").notNull(),
 		mime: text("mime").notNull(),
 		data: text("data").notNull(),

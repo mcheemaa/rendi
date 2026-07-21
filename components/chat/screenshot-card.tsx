@@ -11,23 +11,27 @@ type ScreenshotOutput = {
 	theme?: string;
 	width?: number;
 	height?: number;
+	url?: string;
 	pngBase64?: string;
 };
 
-// The agent's look, made visible: the exact frame it judged, rendered in
-// the transcript. Open by default because the picture IS the content; the
-// deployed future swaps the base64 for a blob URL and nothing here changes
-// but the src.
+// The agent's look, made visible: the exact frame it judged, open by
+// default. New looks carry a URL; old persisted looks keep their inline
+// base64 forever.
 export function ScreenshotCard({
 	state,
 	output,
 	errorText,
+	interrupted = false,
 }: {
 	state: ToolUIPart["state"];
 	output?: ScreenshotOutput;
 	errorText?: string;
+	interrupted?: boolean;
 }) {
-	const frame = output?.pngBase64;
+	const frame =
+		output?.url ??
+		(output?.pngBase64 ? `data:image/png;base64,${output.pngBase64}` : null);
 	return (
 		<Tool defaultOpen className="bg-card">
 			<ToolHeader
@@ -52,13 +56,17 @@ export function ScreenshotCard({
 						<p className="font-mono text-xs text-destructive">{errorText}</p>
 					) : frame ? (
 						<Image
-							src={`data:image/png;base64,${frame}`}
+							src={frame}
 							alt="The board exactly as Rendi sees it"
 							width={output?.width ?? 1112}
 							height={output?.height ?? 408}
 							unoptimized
 							className="h-auto w-full rounded-md border"
 						/>
+					) : interrupted ? (
+						<p className="font-mono text-xs text-muted-foreground">
+							interrupted
+						</p>
 					) : (
 						<Shimmer className="font-mono text-xs">
 							looking at the board
@@ -72,6 +80,6 @@ export function ScreenshotCard({
 
 function headerSummary(output?: ScreenshotOutput, errorText?: string): string {
 	if (errorText) return "failed";
-	if (!output?.pngBase64) return "looking";
+	if (!output?.url && !output?.pngBase64) return "looking";
 	return `${output.width}x${output.height} · ${output.theme ?? "light"}`;
 }

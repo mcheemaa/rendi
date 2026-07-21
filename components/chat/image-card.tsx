@@ -26,11 +26,13 @@ export function ImageCard({
 	input,
 	output,
 	errorText,
+	interrupted = false,
 }: {
 	state: ToolUIPart["state"];
 	input?: ImageInput;
 	output?: ImageOutput;
 	errorText?: string;
+	interrupted?: boolean;
 }) {
 	const refining = Boolean(input?.source_image_id);
 	return (
@@ -71,6 +73,10 @@ export function ImageCard({
 								</figcaption>
 							) : null}
 						</figure>
+					) : interrupted ? (
+						<p className="font-mono text-xs text-muted-foreground">
+							interrupted
+						</p>
 					) : (
 						<Shimmer className="font-mono text-xs">
 							{refining ? "refining the image" : "making an image"}

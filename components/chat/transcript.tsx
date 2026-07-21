@@ -41,6 +41,7 @@ export function Transcript({
 								message={message}
 								conversationId={conversationId}
 								streaming={message.id === streamingMessageId}
+								live={Boolean(streamingMessageId) || pending}
 							/>
 						</MessageContent>
 					</Message>
@@ -64,16 +65,26 @@ function Parts({
 	message,
 	conversationId,
 	streaming,
+	live,
 }: {
 	message: UIMessage;
 	conversationId: string;
 	streaming: boolean;
+	live: boolean;
 }) {
 	return (
 		<>
 			{message.parts.map((part, index) => {
 				const key = `${message.id}-${index}`;
 				const lastPart = index === message.parts.length - 1;
+				// A part still waiting for output in a conversation with no
+				// live stream belongs to a dead turn.
+				const interrupted =
+					!live &&
+					part.type.startsWith("tool-") &&
+					"state" in part &&
+					(part.state === "input-streaming" ||
+						part.state === "input-available");
 				if (part.type === "text") {
 					return (
 						<Streamdown
@@ -109,6 +120,7 @@ function Parts({
 						<QueryDataCard
 							key={key}
 							sql={sql}
+							interrupted={interrupted}
 							state={part.state as ToolUIPart["state"]}
 							output={
 								part.state === "output-available"
@@ -129,6 +141,7 @@ function Parts({
 					return (
 						<ScreenshotCard
 							key={key}
+							interrupted={interrupted}
 							state={part.state as ToolUIPart["state"]}
 							output={
 								part.state === "output-available"
@@ -136,6 +149,7 @@ function Parts({
 											theme?: string;
 											width?: number;
 											height?: number;
+											url?: string;
 											pngBase64?: string;
 										})
 									: undefined
@@ -150,6 +164,7 @@ function Parts({
 					return (
 						<ImageCard
 							key={key}
+							interrupted={interrupted}
 							state={part.state as ToolUIPart["state"]}
 							input={
 								part.state === "input-available" ||

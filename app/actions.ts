@@ -7,6 +7,8 @@ import {
 	pageConversations,
 	searchConversations,
 } from "@/lib/db/queries";
+import { appBase } from "@/lib/rendi/app-url";
+import { mintRenderToken } from "@/lib/rendi/render-token";
 import type { rendiChat } from "@/trigger/chat";
 
 export async function fetchConversationPage(before?: ConversationCursor) {
@@ -15,6 +17,13 @@ export async function fetchConversationPage(before?: ConversationCursor) {
 		items: page.items.map(({ id, title }) => ({ id, title })),
 		cursor: page.cursor,
 	};
+}
+
+const SHARE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
+export async function createShareLink(conversationId: string) {
+	const token = mintRenderToken(conversationId, SHARE_TTL_MS, "share");
+	return { url: `${appBase()}/s/${conversationId}?t=${token}` };
 }
 
 export async function findConversations(query: string) {

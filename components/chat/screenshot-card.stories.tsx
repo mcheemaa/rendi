@@ -28,6 +28,32 @@ export const Looked: Story = {
 	},
 };
 
+export const LookedByUrl: Story = {
+	args: {
+		state: "output-available",
+		output: {
+			theme: "light",
+			width: 112,
+			height: 72,
+			url: `data:image/png;base64,${LOOK_PNG}`,
+		},
+	},
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement);
+		await expect(
+			canvas.getByAltText("The board exactly as Rendi sees it"),
+		).toBeVisible();
+	},
+};
+
+export const Interrupted: Story = {
+	args: { state: "input-available", interrupted: true },
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement);
+		await expect(canvas.getByText("interrupted")).toBeVisible();
+	},
+};
+
 export const Looking: Story = {
 	args: { state: "input-available" },
 	play: async ({ canvasElement }) => {

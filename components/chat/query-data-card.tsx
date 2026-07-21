@@ -30,11 +30,13 @@ export function QueryDataCard({
 	state,
 	output,
 	errorText,
+	interrupted = false,
 }: {
 	sql: string;
 	state: ToolUIPart["state"];
 	output?: QueryOutput;
 	errorText?: string;
+	interrupted?: boolean;
 }) {
 	return (
 		<Tool className="bg-card">
@@ -50,7 +52,7 @@ export function QueryDataCard({
 							errorText ? "text-destructive" : "text-muted-foreground",
 						)}
 					>
-						{headerSummary(output, errorText)}
+						{headerSummary(output, errorText, interrupted)}
 					</span>
 				}
 			/>
@@ -72,9 +74,13 @@ export function QueryDataCard({
 	);
 }
 
-function headerSummary(output?: QueryOutput, errorText?: string): string {
+function headerSummary(
+	output?: QueryOutput,
+	errorText?: string,
+	interrupted = false,
+): string {
 	if (errorText) return "failed";
-	if (!output) return "running";
+	if (!output) return interrupted ? "interrupted" : "running";
 	const count = output.rowCount ?? 0;
 	const rows = `${count} ${count === 1 ? "row" : "rows"}`;
 	const marks = [

@@ -1,7 +1,9 @@
 "use client";
 
-import { PanelRightClose, UnfoldHorizontal } from "lucide-react";
+import { PanelRightClose, Share2, UnfoldHorizontal } from "lucide-react";
 import { useEffect, useRef } from "react";
+import { toast } from "sonner";
+import { createShareLink } from "@/app/actions";
 import { Button } from "@/components/ui/button";
 import { type CanvasDoc, emptyCanvas } from "@/lib/rendi/canvas";
 import { cn } from "@/lib/utils";
@@ -98,6 +100,21 @@ export function CanvasPanel({
 					canvas
 				</span>
 				<div className="ml-auto flex items-center gap-0.5">
+					<Button
+						variant="ghost"
+						size="icon"
+						className="size-7 text-muted-foreground"
+						aria-label="Copy share link"
+						onClick={async () => {
+							const { url } = await createShareLink(conversationId);
+							await navigator.clipboard.writeText(url);
+							toast.success("Share link copied", {
+								description: "Live board, steerable, read-only. 7 days.",
+							});
+						}}
+					>
+						<Share2 className="size-3.5" />
+					</Button>
 					<Button
 						variant="ghost"
 						size="icon"

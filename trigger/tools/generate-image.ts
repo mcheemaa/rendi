@@ -4,6 +4,7 @@ import { imageSize } from "image-size";
 import { z } from "zod";
 import { getDb } from "@/lib/db";
 import { images } from "@/lib/db/schema";
+import { appBase } from "@/lib/rendi/app-url";
 import { emitSpan, turnContext } from "@/lib/rendi/harness/telemetry";
 
 const MODEL = "gemini-3.1-flash-image";
@@ -40,15 +41,6 @@ const interactionResponse = z.object({
 });
 
 const GENERATION_TIMEOUT_MS = 60_000;
-
-function appBase(): string {
-	const base = process.env.RENDI_APP_URL;
-	if (base) return base;
-	if (process.env.NODE_ENV === "production") {
-		throw new Error("RENDI_APP_URL must be set: image URLs persist");
-	}
-	return "http://localhost:3000";
-}
 
 export const generateImage = tool({
 	description:

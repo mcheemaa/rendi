@@ -77,6 +77,7 @@ export function useBlockGestures(
 	id: string,
 	frame: Frame,
 	host: RefObject<HTMLDivElement | null>,
+	disabled = false,
 ) {
 	const live = useRef<{ start: Frame; end: Frame; gesture: Gesture } | null>(
 		null,
@@ -86,7 +87,7 @@ export function useBlockGestures(
 
 	useEffect(() => {
 		const el = host.current;
-		if (!el) return;
+		if (!el || disabled) return;
 
 		let origin: { x: number; y: number } | null = null;
 		let gesture: Gesture | null = null;
@@ -181,5 +182,5 @@ export function useBlockGestures(
 			el.removeEventListener("pointercancel", onPointerCancel);
 			window.removeEventListener("keydown", onKeyDown);
 		};
-	}, [store, camera, id, host]);
+	}, [store, camera, id, host, disabled]);
 }

@@ -8,6 +8,7 @@ export type CanvasContextValue = {
 	store: CanvasStore;
 	camera: CameraStore;
 	conversationId: string;
+	readOnly?: boolean;
 };
 
 const CanvasContext = createContext<CanvasContextValue | null>(null);

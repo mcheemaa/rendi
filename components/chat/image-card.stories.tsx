@@ -54,6 +54,18 @@ export const Refining: Story = {
 	},
 };
 
+export const Interrupted: Story = {
+	args: {
+		state: "input-available",
+		input: { prompt: "A hero image" },
+		interrupted: true,
+	},
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement);
+		await expect(canvas.getByText("interrupted")).toBeVisible();
+	},
+};
+
 export const Failed: Story = {
 	args: {
 		state: "output-error",
