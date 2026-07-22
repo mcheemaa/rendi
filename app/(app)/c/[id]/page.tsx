@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { ConversationView } from "@/components/chat/conversation-view";
 import { getConversation, getTranscript } from "@/lib/db/queries";
+import { isArchived } from "@/lib/rendi/archive";
 import { loadCanvas } from "@/lib/rendi/harness/canvas-db";
 
 const CHAT_ID =
@@ -30,6 +31,7 @@ export default async function ConversationPage({
 				chatId={id}
 				initialMessages={transcript}
 				initialCanvas={canvas ?? null}
+				archived={conversation ? isArchived(conversation.createdAt) : false}
 				session={
 					conversation?.publicAccessToken
 						? {

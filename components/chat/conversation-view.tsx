@@ -15,11 +15,13 @@ export function ConversationView({
 	initialMessages,
 	session,
 	initialCanvas,
+	archived = false,
 }: {
 	chatId: string;
 	initialMessages: UIMessage[];
 	session?: SessionState;
 	initialCanvas: CanvasSnapshot | null;
+	archived?: boolean;
 }) {
 	// A canvas that already has blocks opens with the conversation.
 	const [canvasOpen, setCanvasOpen] = useState(
@@ -34,6 +36,7 @@ export function ConversationView({
 					chatId={chatId}
 					initialMessages={initialMessages}
 					session={session}
+					archived={archived}
 				/>
 				{canvasOpen ? null : (
 					<Button

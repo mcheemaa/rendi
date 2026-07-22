@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { mintChatAccessToken, startChatSession } from "@/app/actions";
+import { ArchiveNotice } from "@/components/chat/archive-notice";
 import { Composer } from "@/components/chat/composer";
 import { Transcript } from "@/components/chat/transcript";
 import { mergeTranscript } from "@/lib/rendi/transcript-merge";
@@ -21,10 +22,12 @@ export function ChatApp({
 	chatId,
 	initialMessages,
 	session,
+	archived = false,
 }: {
 	chatId: string;
 	initialMessages: UIMessage[];
 	session?: SessionState;
+	archived?: boolean;
 }) {
 	const router = useRouter();
 	const draftConsumed = useRef(false);
@@ -96,7 +99,7 @@ export function ChatApp({
 	// and the transport refuses a second subscription, so retries are
 	// safe until the turn's rows settle.
 	useEffect(() => {
-		if (status !== "ready") return;
+		if (archived || status !== "ready") return;
 		let cancelled = false;
 		const timer = setInterval(async () => {
 			if (document.visibilityState !== "visible") return;
@@ -139,7 +142,15 @@ export function ChatApp({
 			cancelled = true;
 			clearInterval(timer);
 		};
-	}, [status, chatId, messages, setMessages, transport, resumeStream]);
+	}, [
+		archived,
+		status,
+		chatId,
+		messages,
+		setMessages,
+		transport,
+		resumeStream,
+	]);
 
 	// A home-page draft rides sessionStorage so the first send happens
 	// here, after navigation, with zero rows created until turn start.
@@ -157,7 +168,7 @@ export function ChatApp({
 	// Cold loads that beat the harness (empty page, or a user message
 	// whose reply has not persisted yet) self-heal with a bounded poll.
 	useEffect(() => {
-		if (status !== "ready") return;
+		if (archived || status !== "ready") return;
 		if (hadDraft.current) return;
 		const empty = messages.length === 0;
 		const dangling = messages.at(-1)?.role === "user";
@@ -168,7 +179,7 @@ export function ChatApp({
 			router.refresh();
 		}, 1500);
 		return () => clearTimeout(timer);
-	}, [status, messages, router]);
+	}, [archived, status, messages, router]);
 
 	const last = messages.at(-1);
 	// Dead air between send and the first visible part: covers session
@@ -189,20 +200,24 @@ export function ChatApp({
 				}
 				pending={pending}
 			/>
-			<Composer
-				status={status}
-				autoFocus
-				onSend={(text) => {
-					stoppedTail.current = null;
-					sendMessage({ text });
-				}}
-				onStop={() => {
-					const tail = messages.at(-1);
-					stoppedTail.current = tail?.role === "user" ? tail.id : null;
-					transport.stopGeneration(chatId);
-					stop();
-				}}
-			/>
+			{archived ? (
+				<ArchiveNotice />
+			) : (
+				<Composer
+					status={status}
+					autoFocus
+					onSend={(text) => {
+						stoppedTail.current = null;
+						sendMessage({ text });
+					}}
+					onStop={() => {
+						const tail = messages.at(-1);
+						stoppedTail.current = tail?.role === "user" ? tail.id : null;
+						transport.stopGeneration(chatId);
+						stop();
+					}}
+				/>
+			)}
 		</>
 	);
 }
