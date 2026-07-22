@@ -7,7 +7,7 @@
 	},
 	"files": {
 		"ignoreUnknown": false,
-		"includes": ["**", "!drizzle", "!brand/vendors"]
+		"includes": ["**", "!drizzle", "!brand/vendors", "!public/vendor"]
 	},
 	"formatter": {
 		"enabled": true,

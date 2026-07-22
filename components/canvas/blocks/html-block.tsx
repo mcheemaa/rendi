@@ -41,13 +41,19 @@ const TOKEN_NAMES = [
 	"--font-mono",
 ];
 
-const CSP = [
-	"default-src 'none'",
-	"style-src 'unsafe-inline' https://fonts.googleapis.com",
-	"font-src https://fonts.gstatic.com",
-	"script-src 'unsafe-inline'",
-	`img-src data: https:${process.env.NODE_ENV === "development" ? " http://localhost:3000" : ""}`,
-].join("; ");
+// script-src carries our own origin so the frame can load vendored
+// libraries (public/vendor/, today D3); srcdoc runs on an opaque origin
+// where 'self' matches nothing, so the origin is spelled out. The <base>
+// tag pins relative URL resolution to us across browsers.
+function buildCsp(origin: string): string {
+	return [
+		"default-src 'none'",
+		"style-src 'unsafe-inline' https://fonts.googleapis.com",
+		"font-src https://fonts.gstatic.com",
+		`script-src 'unsafe-inline' ${origin}`,
+		`img-src data: https:${process.env.NODE_ENV === "development" ? " http://localhost:3000" : ""}`,
+	].join("; ");
+}
 
 function buildSrcdoc(html: string): string {
 	const style = getComputedStyle(document.documentElement);
@@ -58,7 +64,8 @@ function buildSrcdoc(html: string): string {
 <html>
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="${CSP}">
+<meta http-equiv="Content-Security-Policy" content="${buildCsp(window.location.origin)}">
+<base href="${window.location.origin}/">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap');
 :root { ${tokens} }

@@ -47,10 +47,14 @@ arrange with apply-canvas-ops. Chat cards stay where they are; the canvas is
 for compositions: dashboards, several related views, anything the user asks
 to lay out. Rendering the same instrument in chat and on the canvas is fine.
 Blocks are instrument (a full spec plus paramState), text (markdown), image
-(prompt plus assetUrl, null while generating), and html (your own markup in a
-sandbox that wears the design tokens: write against var(--card),
-var(--foreground), var(--accent-text), var(--chart-1) and the fonts, never
-hex). Coordinates are world pixels on an 8px lattice, y grows down, overlap
+(prompt plus assetUrl, null while generating), and html: a full page of your
+own in a sandboxed frame, and scripts are real. Inline script runs, and D3 v7
+is available with <script src="/vendor/d3.v7.min.js"></script>. The frame has
+no network, no fetch, no CDNs, so a page that needs data gets it inlined at
+write time: query first, then write. The design tokens ride in as CSS
+variables (var(--card), var(--foreground), var(--chart-1), the fonts) for
+pages that should feel native, and a page with its own art direction is free
+to ignore them. Coordinates are world pixels on an 8px lattice, y grows down, overlap
 is legal and z is paint order. Good sizes: charts 560x336, stats 272x152,
 notes 320x200. Give text room to breathe: a title with a caption wants at
 least 112 of height, and every wrapped line wants about 28 more; a clipped

@@ -6,7 +6,7 @@ import { turnContext } from "@/lib/rendi/harness/telemetry";
 
 export const applyCanvasOps = tool({
 	description:
-		"Arrange this conversation's canvas, the board the user sees beside the chat. Send one or more ops; several ops land as one atomic batch with your label as its history frame. Coordinates are world pixels snapped to an 8px lattice; z is paint order and overlap is legal. You invent block ids (short, stable, like b_daily). The result echoes the new document version and block count.",
+		"Arrange this conversation's canvas, the board the user sees beside the chat. Send one or more ops; several ops land as one atomic batch with your label as its history frame. Coordinates are world pixels snapped to an 8px lattice; z is paint order and overlap is legal. You invent block ids (short, stable, like b_daily). Html blocks run scripts in a sandboxed frame with no network: inline code works, D3 v7 loads from /vendor/d3.v7.min.js, and any data a page needs must be inlined into it. The result echoes the new document version and block count.",
 	inputSchema: z.object({
 		label: z
 			.string()
