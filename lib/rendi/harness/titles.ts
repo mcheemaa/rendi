@@ -53,8 +53,10 @@ export async function maybeUpdateTitle(
 			model: anthropic(TITLE_MODEL),
 			system:
 				"You name conversations for a sidebar. Reply with only the title: " +
-				"3 to 6 plain words, no quotes, no trailing punctuation, " +
-				"specific to the subject rather than the activity.",
+				"3 to 6 plain words in sentence case, no quotes, no trailing " +
+				"punctuation. Name the subject, never the participants or the " +
+				"request itself: 'Daily commit activity by hour', not " +
+				"'Claude's data lookups' or 'Can you help me draw'.",
 			prompt: `Name this conversation.\n\n${conversation}`,
 		});
 		const title = sanitize(text);
