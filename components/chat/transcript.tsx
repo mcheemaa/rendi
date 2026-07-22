@@ -1,6 +1,6 @@
 "use client";
 
-import type { ToolUIPart, UIMessage } from "ai";
+import type { UIMessage } from "ai";
 import { Streamdown } from "streamdown";
 import {
 	Conversation,
@@ -14,6 +14,7 @@ import {
 	ReasoningContent,
 	ReasoningTrigger,
 } from "@/components/ai-elements/reasoning";
+import { DatasetCard } from "@/components/chat/dataset-card";
 import { ImageCard } from "@/components/chat/image-card";
 import { InstrumentCard } from "@/components/chat/instrument-card";
 import { PulseCard } from "@/components/chat/pulse-card";
@@ -122,7 +123,7 @@ function Parts({
 							key={key}
 							sql={sql}
 							interrupted={interrupted}
-							state={part.state as ToolUIPart["state"]}
+							state={part.state}
 							output={
 								part.state === "output-available"
 									? (part.output as {
@@ -143,7 +144,7 @@ function Parts({
 						<ScreenshotCard
 							key={key}
 							interrupted={interrupted}
-							state={part.state as ToolUIPart["state"]}
+							state={part.state}
 							output={
 								part.state === "output-available"
 									? (part.output as {
@@ -166,7 +167,7 @@ function Parts({
 						<ImageCard
 							key={key}
 							interrupted={interrupted}
-							state={part.state as ToolUIPart["state"]}
+							state={part.state}
 							input={
 								part.state === "input-available" ||
 								part.state === "output-available" ||
@@ -193,12 +194,39 @@ function Parts({
 						/>
 					);
 				}
+				if (part.type === "tool-load-dataset") {
+					return (
+						<DatasetCard
+							key={key}
+							interrupted={interrupted}
+							state={part.state}
+							input={
+								part.state === "input-available" ||
+								part.state === "output-available" ||
+								part.state === "output-error"
+									? (part.input as {
+											op?: "catalog" | "load" | "status";
+											slug?: string;
+										})
+									: undefined
+							}
+							output={
+								part.state === "output-available"
+									? (part.output as Parameters<typeof DatasetCard>[0]["output"])
+									: undefined
+							}
+							errorText={
+								part.state === "output-error" ? part.errorText : undefined
+							}
+						/>
+					);
+				}
 				if (part.type === "tool-pulse-ops") {
 					return (
 						<PulseCard
 							key={key}
 							interrupted={interrupted}
-							state={part.state as ToolUIPart["state"]}
+							state={part.state}
 							input={
 								part.state === "input-available" ||
 								part.state === "output-available" ||

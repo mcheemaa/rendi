@@ -185,6 +185,22 @@ export const pulses = pgTable(
 	(table) => [index("pulses_conversation_idx").on(table.conversationId)],
 );
 
+// Ingestion state for catalog datasets: the OLTP record of what lives in
+// the OLAP store, updated live by the ingest task's progress poller.
+export const datasets = pgTable("datasets", {
+	slug: text("slug").primaryKey(),
+	tableName: text("table_name").notNull(),
+	status: text("status").notNull(),
+	rowsLoaded: integer("rows_loaded").notNull().default(0),
+	rowsEstimate: integer("rows_estimate").notNull().default(0),
+	error: text("error"),
+	startedAt: timestamp("started_at", { withTimezone: true }),
+	finishedAt: timestamp("finished_at", { withTimezone: true }),
+	updatedAt: timestamp("updated_at", { withTimezone: true })
+		.notNull()
+		.defaultNow(),
+});
+
 export type ConversationRow = typeof conversations.$inferSelect;
 export type MessageRow = typeof messages.$inferSelect;
 export type InstrumentRow = typeof instruments.$inferSelect;
@@ -193,3 +209,4 @@ export type CanvasRow = typeof canvases.$inferSelect;
 export type CanvasOpRow = typeof canvasOps.$inferSelect;
 export type ImageRow = typeof images.$inferSelect;
 export type PulseRow = typeof pulses.$inferSelect;
+export type DatasetRow = typeof datasets.$inferSelect;

@@ -1,5 +1,6 @@
 import { applyCanvasOps } from "./apply-canvas-ops";
 import { generateImage } from "./generate-image";
+import { loadDataset } from "./load-dataset";
 import { pulseOps } from "./pulse-ops";
 import { queryData } from "./query-data";
 import { renderInstrument } from "./render-instrument";
@@ -14,4 +15,5 @@ export const toolRegistry = {
 	"screenshot-canvas": screenshotCanvas,
 	"generate-image": generateImage,
 	"pulse-ops": pulseOps,
+	"load-dataset": loadDataset,
 };

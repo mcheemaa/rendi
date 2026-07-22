@@ -1,8 +1,9 @@
-import { schedules, sessions } from "@trigger.dev/sdk";
+import { schedules } from "@trigger.dev/sdk";
 import { eq, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { pulses } from "@/lib/db/schema";
 import { emitSpan } from "@/lib/rendi/harness/telemetry";
+import { sendSessionText } from "@/lib/rendi/nudge";
 import {
 	heartbeatMessage,
 	newestMessage,
@@ -46,15 +47,12 @@ export const rendiPulse = schedules.task({
 		}
 
 		const message = heartbeatMessage(pulse.cron, pulse.instruction);
-		await sessions.open(pulse.conversationId).in.send({
-			kind: "message",
-			payload: {
-				chatId: pulse.conversationId,
-				trigger: "submit-message",
-				messageId: message.id,
-				message,
-			},
-		});
+		const [part] = message.parts;
+		const messageId = await sendSessionText(
+			pulse.conversationId,
+			part.type === "text" ? part.text : pulse.instruction,
+		);
+		message.id = messageId;
 		await getDb()
 			.update(pulses)
 			.set({ beats: sql`${pulses.beats} + 1`, lastBeatAt: new Date() })
