@@ -201,6 +201,23 @@ export const datasets = pgTable("datasets", {
 		.defaultNow(),
 });
 
+// Every email the agent sends, one row per accepted send: the audit
+// trail, and the counter behind the per-conversation daily cap.
+export const emails = pgTable(
+	"emails",
+	{
+		id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+		conversationId: text("conversation_id").notNull(),
+		to: text("to").notNull(),
+		subject: text("subject").notNull(),
+		resendId: text("resend_id").notNull(),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.notNull()
+			.defaultNow(),
+	},
+	(table) => [index("emails_conversation_idx").on(table.conversationId)],
+);
+
 export type ConversationRow = typeof conversations.$inferSelect;
 export type MessageRow = typeof messages.$inferSelect;
 export type InstrumentRow = typeof instruments.$inferSelect;

@@ -50,6 +50,13 @@
       "when": 1784693754586,
       "tag": "0006_datasets",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1784741129586,
+      "tag": "0007_emails",
+      "breakpoints": true
     }
   ]
 }

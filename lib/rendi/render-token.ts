@@ -5,6 +5,8 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 
 export type TokenScope = "render" | "share";
 
+export const SHARE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
 function secret(): string {
 	const value = process.env.RENDER_TOKEN_SECRET;
 	if (!value) throw new Error("RENDER_TOKEN_SECRET is not set");

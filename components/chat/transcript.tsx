@@ -15,11 +15,13 @@ import {
 	ReasoningTrigger,
 } from "@/components/ai-elements/reasoning";
 import { DatasetCard } from "@/components/chat/dataset-card";
+import { EmailCard } from "@/components/chat/email-card";
 import { ImageCard } from "@/components/chat/image-card";
 import { InstrumentCard } from "@/components/chat/instrument-card";
 import { PulseCard } from "@/components/chat/pulse-card";
 import { QueryDataCard } from "@/components/chat/query-data-card";
 import { ScreenshotCard } from "@/components/chat/screenshot-card";
+import { ShareLinkCard } from "@/components/chat/share-link-card";
 import { persistedInstrumentSpec } from "@/lib/rendi/instrument";
 
 export function Transcript({
@@ -213,6 +215,49 @@ function Parts({
 							output={
 								part.state === "output-available"
 									? (part.output as Parameters<typeof DatasetCard>[0]["output"])
+									: undefined
+							}
+							errorText={
+								part.state === "output-error" ? part.errorText : undefined
+							}
+						/>
+					);
+				}
+				if (part.type === "tool-send-email") {
+					return (
+						<EmailCard
+							key={key}
+							interrupted={interrupted}
+							state={part.state}
+							input={
+								part.state === "input-available" ||
+								part.state === "output-available" ||
+								part.state === "output-error"
+									? (part.input as { to?: string; subject?: string })
+									: undefined
+							}
+							output={
+								part.state === "output-available"
+									? (part.output as Parameters<typeof EmailCard>[0]["output"])
+									: undefined
+							}
+							errorText={
+								part.state === "output-error" ? part.errorText : undefined
+							}
+						/>
+					);
+				}
+				if (part.type === "tool-create-share-link") {
+					return (
+						<ShareLinkCard
+							key={key}
+							interrupted={interrupted}
+							state={part.state}
+							output={
+								part.state === "output-available"
+									? (part.output as Parameters<
+											typeof ShareLinkCard
+										>[0]["output"])
 									: undefined
 							}
 							errorText={
