@@ -9,6 +9,9 @@ const PHASES = [
 	"stat",
 	"approach",
 	"settle",
+	"release",
+	"beat",
+	"ticked",
 	"rest",
 ] as const;
 
@@ -27,12 +30,15 @@ const TIMELINE: ReadonlyArray<readonly [VignettePhase, number]> = [
 	["stat", 4300],
 	["approach", 5400],
 	["settle", 6500],
-	["rest", 7800],
+	["release", 7800],
+	["beat", 10600],
+	["ticked", 12400],
+	["rest", 14200],
 ];
 const TYPE_MS = 40;
 // Alive when watched, calm always: one full cycle, a long rest, replay only
 // while the tab is visible, and a short settle before replaying on return.
-const REPLAY_MS = 22_000;
+const REPLAY_MS = 28_000;
 const RETURN_MS = 6_000;
 
 export function useVignettePlayer(question: string): {

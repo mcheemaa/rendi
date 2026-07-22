@@ -116,29 +116,59 @@ export function Vignette({
 				    drag stays frame-locked instead of animating layout. */}
 				<div
 					className={cn(
-						"absolute top-32 left-[118px] h-[88px] w-[186px] overflow-hidden rounded-[10px] border bg-card",
+						"absolute top-32 left-[118px] h-[88px] w-[186px] rounded-[10px] border bg-card",
 						"shadow-[0_1px_2px_rgba(0,0,0,.05),0_12px_24px_-18px_rgba(0,0,0,.35)]",
-						"transition-[opacity,translate,scale] ease-[cubic-bezier(0.45,0,0.3,1)]",
+						"transition-[opacity,translate,scale,border-color] ease-[cubic-bezier(0.45,0,0.3,1)]",
 						reached("stat")
 							? reached("settle")
 								? "translate-y-12 opacity-100 duration-[900ms]"
 								: "translate-y-0 opacity-100 duration-[550ms]"
 							: "translate-y-3 scale-[.97] opacity-0 duration-[550ms]",
+						phase === "beat" || phase === "ticked"
+							? "border-primary/60"
+							: "border-border",
+						phase === "beat" && "animate-[pulse-ring_0.8s_ease-out_2]",
 					)}
 				>
 					<div className="px-2.5 pt-1.5 font-display text-[11px]">Peak</div>
-					<div className="px-3 pt-0.5">
-						<div className="font-display text-2xl leading-tight">Wed, 2pm</div>
-						<div className="mt-1 font-mono text-[8.5px] tracking-[0.12em] text-muted-foreground uppercase">
-							21 commits
+					<div
+						className="px-3 pt-0.5"
+						key={reached("ticked") ? "after" : "before"}
+					>
+						<div
+							className={cn(
+								"font-display text-2xl leading-tight",
+								reached("ticked") && "animate-[value-tick_0.5s_ease-out]",
+							)}
+						>
+							{reached("ticked") ? "Wed, 4pm" : "Wed, 2pm"}
+						</div>
+						<div
+							className={cn(
+								"mt-1 font-mono text-[8.5px] tracking-[0.12em] text-muted-foreground uppercase",
+								reached("ticked") && "animate-[value-tick_0.7s_ease-out]",
+							)}
+						>
+							{reached("ticked") ? "46 commits" : "21 commits"}
 						</div>
 					</div>
+					<span
+						className={cn(
+							"absolute right-2.5 top-2 font-mono text-[7.5px] tracking-[0.14em] text-primary uppercase",
+							"transition-opacity duration-500",
+							phase === "beat" || phase === "ticked"
+								? "opacity-100"
+								: "opacity-0",
+						)}
+					>
+						pulse
+					</span>
 				</div>
 				<MousePointer2
 					className={cn(
 						"absolute top-0 left-0 z-10 size-[15px] fill-foreground text-card drop-shadow-sm",
 						"[transition:transform_.9s_cubic-bezier(0.45,0,0.3,1),opacity_.35s_cubic-bezier(0.45,0,0.3,1)]",
-						reached("approach") && phase !== "rest"
+						phase === "approach" || phase === "settle"
 							? "opacity-100"
 							: "opacity-0",
 					)}
