@@ -23,11 +23,13 @@ export function ChatApp({
 	initialMessages,
 	session,
 	archived = false,
+	onCanvasActivity,
 }: {
 	chatId: string;
 	initialMessages: UIMessage[];
 	session?: SessionState;
 	archived?: boolean;
+	onCanvasActivity?: () => void;
 }) {
 	const router = useRouter();
 	const draftConsumed = useRef(false);
@@ -65,6 +67,22 @@ export function ChatApp({
 		});
 
 	useEffect(() => () => clearTimeout(settleTimer.current), []);
+
+	// The canvas panel reveals itself the first time the agent reaches
+	// for the board, so the work is never hidden behind a button.
+	const canvasSeen = useRef(false);
+	useEffect(() => {
+		if (canvasSeen.current || !onCanvasActivity) return;
+		const touched = messages.some(
+			(message) =>
+				message.role === "assistant" &&
+				message.parts.some((part) => part.type === "tool-apply-canvas-ops"),
+		);
+		if (touched) {
+			canvasSeen.current = true;
+			onCanvasActivity();
+		}
+	}, [messages, onCanvasActivity]);
 
 	// The transport is built once, so a session token that arrives after
 	// mount (spectator pages that beat onChatStart) is injected in place;
