@@ -28,10 +28,12 @@ export const Home: Story = {
 			timeout: 3000,
 		});
 		await userEvent.click(
-			canvas.getByRole("button", { name: "Keep a board fresh every morning" }),
+			canvas.getByRole("button", {
+				name: "Chart seventeen years of ClickHouse",
+			}),
 		);
 		await expect(args.onPick).toHaveBeenCalledWith(
-			"Build a commits dashboard on the canvas and set yourself a pulse to keep it fresh every morning at 9.",
+			expect.stringContaining("seventeen years of ClickHouse development"),
 		);
 	},
 };

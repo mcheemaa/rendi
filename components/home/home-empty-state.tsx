@@ -18,20 +18,34 @@ const QUESTION = "busiest hours by weekday?";
 
 const SUGGESTIONS = [
 	{
-		label: "GitHub-style calendar of commits",
-		prompt: "Show a GitHub-style contributions calendar of commits",
-		dot: "bg-chart-1",
+		label: "What is trigger.dev's team shipping?",
+		prompt:
+			"Sync trigger.dev's commits, then show me what the team has been shipping lately. Put up a first chart as soon as you have one, then build out a small focused board: recent work over ancient history.",
+		dot: "bg-[#41ff54]",
 	},
 	{
-		label: "Build a dashboard on the canvas",
-		prompt: "Build a commit dashboard on the canvas",
+		label: "Chart seventeen years of ClickHouse",
+		prompt:
+			"Chart seventeen years of ClickHouse development from the git data: the long tide of commits over time, who the eras belonged to, how the team grew. Render your first view as soon as a query lands and add the rest incrementally, three or four charts, at least one steerable.",
+		dot: "bg-[#151515] dark:bg-[#fcff74]",
+	},
+	{
+		label: "Where did London house prices go?",
+		prompt:
+			"Using the UK property prices data, tell the story of London against the rest of the country. First chart quickly, then deepen: a steerable time window, and one view that surprises you.",
 		dot: "bg-chart-2",
 	},
 	{
-		label: "Keep a board fresh every morning",
+		label: "What data can you load for me?",
 		prompt:
-			"Build a commits dashboard on the canvas and set yourself a pulse to keep it fresh every morning at 9.",
-		dot: "bg-chart-3",
+			"What data do you have, and what can you load? Show me the catalog and what is already live, and if something interesting is not loaded yet, offer to load it.",
+		dot: "bg-[#e8a33d]",
+	},
+	{
+		label: "Make something beautiful. Surprise me.",
+		prompt:
+			"Make me something beautiful from the Hacker News data. Surprise me: your native charts where they serve, a hand-built D3 piece if it earns its place, an image if it sets the mood. Put value on screen early and keep composing.",
+		dot: "bg-[#ff6600]",
 	},
 ] as const;
 
