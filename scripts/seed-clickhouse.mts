@@ -1,3 +1,11 @@
+// Seeds git history into ClickHouse, one row per commit, reading only
+// commit objects so partial clones (blobless, treeless) backfill fine.
+// Churn columns stay zero here; the commit sync task fills them for new
+// commits from the GitHub API, where diffs are precomputed. The table
+// is a derived artifact of this script: schema changes ship by dropping
+// and reseeding, and the ReplacingMergeTree key makes any re-run or API
+// sync idempotent.
+// Run: node --env-file=.env.development.local scripts/seed-clickhouse.mts <repo paths...>
 import { execFileSync } from "node:child_process";
 import { basename, resolve } from "node:path";
 import { clickhouseAdmin } from "../lib/rendi/clickhouse.ts";
@@ -9,27 +17,45 @@ type CommitRow = {
 	sha: string;
 	ts: number;
 	author: string;
+	author_email: string;
 	subject: string;
+	body: string;
+	files_changed: number;
+	additions: number;
+	deletions: number;
+	is_merge: number;
 };
 
 const commits: CommitRow[] = repoPaths.flatMap((path) => {
 	const repo = basename(resolve(path));
 	const log = execFileSync(
 		"git",
-		["-C", path, "log", "--format=%H%x09%aI%x09%aN%x09%s"],
-		{ encoding: "utf8", maxBuffer: 256 * 1024 * 1024 },
+		[
+			"-C",
+			path,
+			"log",
+			"--format=%x00%H%x1f%aI%x1f%aN%x1f%aE%x1f%P%x1f%s%x1f%b",
+		],
+		{ encoding: "utf8", maxBuffer: 1024 * 1024 * 1024 },
 	);
 	return log
-		.split("\n")
+		.split("\0")
 		.filter(Boolean)
-		.map((line) => {
-			const [sha, iso, author, subject = ""] = line.split("\t");
+		.map((record) => {
+			const [sha, iso, author, email, parents, subject, body] =
+				record.split("\x1f");
 			return {
 				repo,
 				sha,
 				ts: Math.floor(Date.parse(iso) / 1000),
 				author,
-				subject,
+				author_email: email ?? "",
+				subject: subject ?? "",
+				body: (body ?? "").trim().slice(0, 2000),
+				files_changed: 0,
+				additions: 0,
+				deletions: 0,
+				is_merge: (parents ?? "").includes(" ") ? 1 : 0,
 			};
 		});
 });
@@ -54,7 +80,13 @@ await client.command({
 		sha String,
 		ts DateTime('UTC'),
 		author LowCardinality(String),
-		subject String
+		author_email LowCardinality(String),
+		subject String,
+		body String,
+		files_changed UInt32,
+		additions UInt32,
+		deletions UInt32,
+		is_merge UInt8
 	) ENGINE = ReplacingMergeTree ORDER BY (repo, ts, sha)`,
 });
 await client.command({
@@ -62,11 +94,14 @@ await client.command({
 });
 await client.command({ query: "GRANT SELECT ON git.* TO rendi_reader" });
 
-await client.insert({
-	table: "git.commits",
-	values: commits,
-	format: "JSONEachRow",
-});
+const CHUNK = 20_000;
+for (let i = 0; i < commits.length; i += CHUNK) {
+	await client.insert({
+		table: "git.commits",
+		values: commits.slice(i, i + CHUNK),
+		format: "JSONEachRow",
+	});
+}
 await client.command({ query: "OPTIMIZE TABLE git.commits FINAL" });
 
 const counted = await client.query({

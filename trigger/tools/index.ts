@@ -7,6 +7,7 @@ import { queryData } from "./query-data";
 import { renderInstrument } from "./render-instrument";
 import { screenshotCanvas } from "./screenshot-canvas";
 import { sendEmail } from "./send-email";
+import { syncCommits } from "./sync-commits";
 
 // Every tool Rendi could carry. The agent file's `tools` list decides which of
 // these are actually wired; an unknown name there fails at boot.
@@ -20,4 +21,5 @@ export const toolRegistry = {
 	"load-dataset": loadDataset,
 	"create-share-link": createShareLink,
 	"send-email": sendEmail,
+	"sync-commits": syncCommits,
 };

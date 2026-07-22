@@ -14,6 +14,7 @@ import {
 	ReasoningContent,
 	ReasoningTrigger,
 } from "@/components/ai-elements/reasoning";
+import { CommitSyncCard } from "@/components/chat/commit-sync-card";
 import { DatasetCard } from "@/components/chat/dataset-card";
 import { EmailCard } from "@/components/chat/email-card";
 import { ImageCard } from "@/components/chat/image-card";
@@ -215,6 +216,32 @@ function Parts({
 							output={
 								part.state === "output-available"
 									? (part.output as Parameters<typeof DatasetCard>[0]["output"])
+									: undefined
+							}
+							errorText={
+								part.state === "output-error" ? part.errorText : undefined
+							}
+						/>
+					);
+				}
+				if (part.type === "tool-sync-commits") {
+					return (
+						<CommitSyncCard
+							key={key}
+							interrupted={interrupted}
+							state={part.state}
+							input={
+								part.state === "input-available" ||
+								part.state === "output-available" ||
+								part.state === "output-error"
+									? (part.input as { repos?: string[] })
+									: undefined
+							}
+							output={
+								part.state === "output-available"
+									? (part.output as Parameters<
+											typeof CommitSyncCard
+										>[0]["output"])
 									: undefined
 							}
 							errorText={
