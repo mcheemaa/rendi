@@ -28,8 +28,9 @@ const SUGGESTIONS = [
 		dot: "bg-chart-2",
 	},
 	{
-		label: "Who ships on weekends?",
-		prompt: "Who ships on weekends?",
+		label: "Keep a board fresh every morning",
+		prompt:
+			"Build a commits dashboard on the canvas and set yourself a pulse to keep it fresh every morning at 9.",
 		dot: "bg-chart-3",
 	},
 ] as const;

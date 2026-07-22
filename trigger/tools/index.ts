@@ -1,5 +1,6 @@
 import { applyCanvasOps } from "./apply-canvas-ops";
 import { generateImage } from "./generate-image";
+import { pulseOps } from "./pulse-ops";
 import { queryData } from "./query-data";
 import { renderInstrument } from "./render-instrument";
 import { screenshotCanvas } from "./screenshot-canvas";
@@ -12,4 +13,5 @@ export const toolRegistry = {
 	"apply-canvas-ops": applyCanvasOps,
 	"screenshot-canvas": screenshotCanvas,
 	"generate-image": generateImage,
+	"pulse-ops": pulseOps,
 };

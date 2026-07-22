@@ -28,8 +28,10 @@ export const Home: Story = {
 			timeout: 3000,
 		});
 		await userEvent.click(
-			canvas.getByRole("button", { name: "Who ships on weekends?" }),
+			canvas.getByRole("button", { name: "Keep a board fresh every morning" }),
 		);
-		await expect(args.onPick).toHaveBeenCalledWith("Who ships on weekends?");
+		await expect(args.onPick).toHaveBeenCalledWith(
+			"Build a commits dashboard on the canvas and set yourself a pulse to keep it fresh every morning at 9.",
+		);
 	},
 };

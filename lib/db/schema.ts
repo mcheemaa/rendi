@@ -160,6 +160,31 @@ export const images = pgTable(
 	(table) => [index("images_conversation_idx").on(table.conversationId)],
 );
 
+// A pulse is a standing instruction the agent scheduled for itself; the
+// Trigger schedule delivers heartbeats, this row carries the meaning.
+export const pulses = pgTable(
+	"pulses",
+	{
+		id: text("id").primaryKey(),
+		conversationId: text("conversation_id")
+			.notNull()
+			.references(() => conversations.id),
+		instruction: text("instruction").notNull(),
+		cron: text("cron").notNull(),
+		timezone: text("timezone").notNull().default("UTC"),
+		scheduleId: text("schedule_id").notNull(),
+		beats: integer("beats").notNull().default(0),
+		lastBeatAt: timestamp("last_beat_at", { withTimezone: true }),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.notNull()
+			.defaultNow(),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
+			.notNull()
+			.defaultNow(),
+	},
+	(table) => [index("pulses_conversation_idx").on(table.conversationId)],
+);
+
 export type ConversationRow = typeof conversations.$inferSelect;
 export type MessageRow = typeof messages.$inferSelect;
 export type InstrumentRow = typeof instruments.$inferSelect;
@@ -167,3 +192,4 @@ export type InstrumentOpRow = typeof instrumentOps.$inferSelect;
 export type CanvasRow = typeof canvases.$inferSelect;
 export type CanvasOpRow = typeof canvasOps.$inferSelect;
 export type ImageRow = typeof images.$inferSelect;
+export type PulseRow = typeof pulses.$inferSelect;
