@@ -34,6 +34,14 @@ export function Board() {
 		// Wheel must preventDefault (pinch arrives as ctrl+wheel and would
 		// zoom the page), which requires a non-passive listener.
 		const onWheel = (event: WheelEvent) => {
+			// A selected block owns plain scrolling, the way html frames
+			// already do natively; pinch stays with the camera everywhere.
+			if (
+				!(event.ctrlKey || event.metaKey) &&
+				(event.target as Element).closest?.("[data-selected]")
+			) {
+				return;
+			}
 			event.preventDefault();
 			if (event.ctrlKey || event.metaKey) {
 				const rect = el.getBoundingClientRect();
