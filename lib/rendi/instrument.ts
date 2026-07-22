@@ -104,7 +104,7 @@ export const instrumentSpec = z.object({
 					defaultValue: z
 						.string()
 						.describe(
-							"A bindable literal, never a SQL expression. DateTime params take ISO 8601 or a relative token: now, now-30d, now-12h, now-45m, now-2w. Numeric params take the number as a string.",
+							"A bindable literal, never a SQL expression. DateTime params take ISO 8601 or a relative token: now, now-30d, now-12h, now-45m, now-2w, now-6mo, now-1y. Numeric params take the number as a string.",
 						),
 					options: z
 						.array(z.string())

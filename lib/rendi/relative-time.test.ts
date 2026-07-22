@@ -23,6 +23,19 @@ describe("resolveTimeValue", () => {
 		);
 	});
 
+	it("shifts calendar units by the calendar, not the clock", () => {
+		const now = new Date("2026-07-21T12:00:00Z");
+		expect(resolveTimeValue("now-1y", now).toISOString()).toBe(
+			"2025-07-21T12:00:00.000Z",
+		);
+		expect(resolveTimeValue("now-4y", now).toISOString()).toBe(
+			"2022-07-21T12:00:00.000Z",
+		);
+		expect(resolveTimeValue("now-6mo", now).toISOString()).toBe(
+			"2026-01-21T12:00:00.000Z",
+		);
+	});
+
 	it("accepts ISO 8601 absolutes", () => {
 		expect(resolveTimeValue("2026-07-01T00:00:00Z", now).toISOString()).toBe(
 			"2026-07-01T00:00:00.000Z",

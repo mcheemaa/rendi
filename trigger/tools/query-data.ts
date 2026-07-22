@@ -8,7 +8,7 @@ const ROW_CAP = 500;
 
 export const queryData = tool({
 	description:
-		"Run read-only ClickHouse SQL with your own eyes: DESCRIBE tables, sample rows, check ranges and distributions, test aggregations before building instruments. Results return to you, not the user. Run as many queries as you need, in parallel when they are independent. At most 500 rows return per call; when truncated is true, page with LIMIT and OFFSET or aggregate for the rest.",
+		"Run read-only ClickHouse SQL with your own eyes: DESCRIBE tables, sample rows, check ranges and distributions, test aggregations before building instruments. ClickHouse is strict: every selected column is either aggregated or in GROUP BY. Results return to you, not the user. Run as many queries as you need, in parallel when they are independent. At most 500 rows return per call; when truncated is true, page with LIMIT and OFFSET or aggregate for the rest.",
 	inputSchema: z.object({
 		sql: z
 			.string()
