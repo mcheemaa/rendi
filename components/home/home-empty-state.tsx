@@ -75,7 +75,7 @@ export function HomeEmptyState({
 					<Button
 						key={suggestion.label}
 						variant="outline"
-						className="h-auto rounded-xl bg-card/75 px-4 py-2.5 font-normal shadow-xs backdrop-blur-md dark:bg-card/75"
+						className="h-auto cursor-pointer rounded-xl bg-card/75 px-4 py-2.5 font-normal shadow-xs backdrop-blur-md dark:bg-card/75"
 						onClick={() => onPick(suggestion.prompt)}
 					>
 						<span
