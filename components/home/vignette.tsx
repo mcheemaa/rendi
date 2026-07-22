@@ -11,6 +11,41 @@ import {
 import { useEmberTokens } from "@/lib/rendi/charts/tokens";
 import { cn } from "@/lib/utils";
 
+// Old and new values stack in one grid cell and trade opacity, so a tick
+// reads as time passing instead of text snapping.
+function TickText({
+	ticked,
+	before,
+	after,
+	className,
+}: {
+	ticked: boolean;
+	before: string;
+	after: string;
+	className?: string;
+}) {
+	return (
+		<div className={cn("grid", className)}>
+			<span
+				className={cn(
+					"col-start-1 row-start-1 transition-opacity duration-700",
+					ticked ? "opacity-0" : "opacity-100",
+				)}
+			>
+				{before}
+			</span>
+			<span
+				className={cn(
+					"col-start-1 row-start-1 transition-[opacity,translate] duration-700",
+					ticked ? "translate-y-0 opacity-100" : "translate-y-1 opacity-0",
+				)}
+			>
+				{after}
+			</span>
+		</div>
+	);
+}
+
 const CURSOR_HOME = "translate(298px, 276px)";
 const CURSOR_GRAB = "translate(196px, 142px)";
 const CURSOR_DROP = "translate(196px, 190px)";
@@ -131,26 +166,19 @@ export function Vignette({
 					)}
 				>
 					<div className="px-2.5 pt-1.5 font-display text-[11px]">Peak</div>
-					<div
-						className="px-3 pt-0.5"
-						key={reached("ticked") ? "after" : "before"}
-					>
-						<div
-							className={cn(
-								"font-display text-2xl leading-tight",
-								reached("ticked") && "animate-[value-tick_0.5s_ease-out]",
-							)}
-						>
-							{reached("ticked") ? "Wed, 4pm" : "Wed, 2pm"}
-						</div>
-						<div
-							className={cn(
-								"mt-1 font-mono text-[8.5px] tracking-[0.12em] text-muted-foreground uppercase",
-								reached("ticked") && "animate-[value-tick_0.7s_ease-out]",
-							)}
-						>
-							{reached("ticked") ? "46 commits" : "21 commits"}
-						</div>
+					<div className="px-3 pt-0.5">
+						<TickText
+							ticked={reached("ticked")}
+							before="Wed, 2pm"
+							after="Wed, 4pm"
+							className="font-display text-2xl leading-tight"
+						/>
+						<TickText
+							ticked={reached("ticked")}
+							before="21 commits"
+							after="46 commits"
+							className="mt-1 font-mono text-[8.5px] tracking-[0.12em] text-muted-foreground uppercase"
+						/>
 					</div>
 					<span
 						className={cn(
