@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { mintChatAccessToken, startChatSession } from "@/app/actions";
 import { Composer } from "@/components/chat/composer";
 import { Transcript } from "@/components/chat/transcript";
+import { mergeTranscript } from "@/lib/rendi/transcript-merge";
 import type { rendiChat } from "@/trigger/chat";
 
 export type SessionState = {
@@ -30,6 +31,8 @@ export function ChatApp({
 	const hadDraft = useRef(false);
 	const recoveryTries = useRef(0);
 	const lateResumed = useRef(false);
+	const stoppedTail = useRef<string | null>(null);
+	const resumeTries = useRef({ tail: "", count: 0 });
 	const settleTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
 		undefined,
 	);
@@ -78,11 +81,65 @@ export function ChatApp({
 	// recovery poll below repaints nothing. Progress renews the poll budget.
 	useEffect(() => {
 		if (status === "submitted" || status === "streaming") return;
-		if (initialMessages.length > messages.length) {
-			setMessages(initialMessages);
+		const merged = mergeTranscript(messages, initialMessages);
+		if (merged.changed) {
+			setMessages(merged.messages);
 			recoveryTries.current = 0;
 		}
-	}, [initialMessages, messages.length, setMessages, status]);
+	}, [initialMessages, messages, setMessages, status]);
+
+	// Turns can also start without this tab sending anything (pulse
+	// beats, dataset-ready nudges). While idle, poll persistence for rows
+	// this store has not seen. A user-role tail means such a turn is due
+	// or already running: the session's not-streaming flag is stale, so
+	// reset it and attach to the live stream. Every step is idempotent,
+	// and the transport refuses a second subscription, so retries are
+	// safe until the turn's rows settle.
+	useEffect(() => {
+		if (status !== "ready") return;
+		let cancelled = false;
+		const timer = setInterval(async () => {
+			if (document.visibilityState !== "visible") return;
+			try {
+				const response = await fetch(`/api/conversations/${chatId}/messages`);
+				if (!response.ok || cancelled) return;
+				const { messages: persisted } = (await response.json()) as {
+					messages: UIMessage[];
+				};
+				if (cancelled) return;
+				const merged = mergeTranscript(messages, persisted);
+				if (merged.changed) setMessages(merged.messages);
+				const tail = merged.messages.at(-1);
+				if (tail?.role !== "user") return;
+				// A tail the user explicitly stopped stays stopped; anything
+				// else gets a bounded number of attach attempts so a turn that
+				// never persists a reply cannot hold a resume loop open.
+				if (tail.id === stoppedTail.current) return;
+				if (resumeTries.current.tail !== tail.id) {
+					resumeTries.current = { tail: tail.id, count: 0 };
+				}
+				if (resumeTries.current.count >= 3) return;
+				resumeTries.current.count += 1;
+				const live = transport.getSession(chatId);
+				if (!live) return;
+				// isStreaming true, not omitted: reconnectToStream refuses only
+				// an explicit false, and stating the belief keeps this working
+				// if the SDK's gate ever tightens to any falsy value.
+				transport.setSession(chatId, {
+					publicAccessToken: live.publicAccessToken,
+					lastEventId: live.lastEventId,
+					isStreaming: true,
+				});
+				resumeStream();
+			} catch {
+				// The next tick retries.
+			}
+		}, 3500);
+		return () => {
+			cancelled = true;
+			clearInterval(timer);
+		};
+	}, [status, chatId, messages, setMessages, transport, resumeStream]);
 
 	// A home-page draft rides sessionStorage so the first send happens
 	// here, after navigation, with zero rows created until turn start.
@@ -135,8 +192,13 @@ export function ChatApp({
 			<Composer
 				status={status}
 				autoFocus
-				onSend={(text) => sendMessage({ text })}
+				onSend={(text) => {
+					stoppedTail.current = null;
+					sendMessage({ text });
+				}}
 				onStop={() => {
+					const tail = messages.at(-1);
+					stoppedTail.current = tail?.role === "user" ? tail.id : null;
 					transport.stopGeneration(chatId);
 					stop();
 				}}
