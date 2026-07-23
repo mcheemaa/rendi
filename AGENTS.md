@@ -76,6 +76,25 @@ could be removed without the product collapsing, the design is wrong.
 - UI copy speaks outcomes, never internals.
 - Commit messages are clean, human, concise. No co-authored-by lines.
 
+## Known upstream context
+
+Building this surfaced three real bugs in the Trigger.dev SDK, all root-caused
+here and taken upstream by the author:
+
+- [triggerdotdev/trigger.dev#4286](https://github.com/triggerdotdev/trigger.dev/issues/4286):
+  a second `trigger dev` session's exit cleanup deletes a shared tmp store and
+  crashes or silently hangs the survivor. One-line fix staged with a regression test.
+- [triggerdotdev/trigger.dev#4326](https://github.com/triggerdotdev/trigger.dev/issues/4326):
+  chat transport `watch: true` duplicates the previous assistant message on
+  out-of-band turns. This repo ships the poll-and-resume workaround instead
+  (components/chat/chat-app.tsx).
+- [triggerdotdev/trigger.dev#3089](https://github.com/triggerdotdev/trigger.dev/issues/3089):
+  the Playwright build extension breaks with Playwright 1.58+. We found the second
+  bug hiding behind the known one (the mac-arm64 to linux URL rewrite targets CDN
+  paths that no longer exist) and fixed both. That fix is the pnpm patch in
+  `patches/`, and it is why Chromium works in this project's deployed workers. Do
+  not remove the patch until both fixes land upstream.
+
 ## Gates
 
 CI runs exactly the local gates and nothing else; green locally must mean green on
