@@ -9,6 +9,7 @@
 
 <p align="center">
   <a href="https://rendi.help">rendi.help</a> ·
+  <a href="https://www.loom.com/share/5f54dacb9d3f473a8480a9b5cfbd84bd">demo</a> ·
   <a href="docs/DEPLOYMENT.md">deploy your own</a> ·
   <a href="docs/AGENT_DEPLOY.md">let an agent deploy it for you</a>
 </p>
@@ -19,8 +20,6 @@
   <img src="https://img.shields.io/badge/TypeScript-strict-3178c6" alt="TypeScript strict">
   <img src="https://img.shields.io/badge/license-MIT-4a75c4" alt="license: MIT">
 </p>
-
-<!-- demo: product walkthrough video lands here -->
 
 Rendi (Italian, from rendere, to render and to give back) turns questions about data
 into interfaces. Ask, and the answer streams in as a live chart. Drag its time
