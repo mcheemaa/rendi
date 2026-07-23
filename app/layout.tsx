@@ -1,3 +1,4 @@
+import { Analytics } from "@vercel/analytics/next";
 import type { Metadata } from "next";
 import {
 	Geist_Mono,
@@ -47,6 +48,7 @@ export default function RootLayout({
 				className="flex h-full flex-col overflow-hidden overscroll-none"
 			>
 				<Providers>{children}</Providers>
+				<Analytics />
 			</body>
 		</html>
 	);
