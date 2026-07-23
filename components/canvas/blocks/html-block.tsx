@@ -10,7 +10,9 @@ type HtmlBlock = Extract<CanvasBlock, { kind: "html" }>;
 // and NO allow-same-origin: an opaque origin that can never reach our DOM,
 // cookies, or storage. The CSP meta inside the srcdoc cuts the network
 // (connect-src falls back to default-src 'none'), leaving our fonts and
-// https images as the only loads, per Cheema's fidelity-over-purity call.
+// https images as the only loads: a deliberate fidelity-over-purity call,
+// since agent pages keep real imagery while the opaque origin keeps them
+// harmless.
 
 const TOKEN_NAMES = [
 	"--background",
