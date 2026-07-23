@@ -5,7 +5,7 @@ import { RendiMark } from "@/components/brand/rendi-mark";
 import { RendiWordmark } from "@/components/brand/rendi-wordmark";
 import { AmbientWave } from "@/components/home/ambient-wave";
 import { Hallmark } from "@/components/home/hallmark";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
 	Empty,
 	EmptyContent,
@@ -15,6 +15,7 @@ import {
 	EmptyTitle,
 } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 
 type GateAction = (
 	previous: { error?: string },
@@ -87,6 +88,36 @@ export function GateView({
 							cheemawrites@gmail.com
 						</a>
 					</p>
+					<div className="mt-7 flex flex-col items-center gap-3">
+						<p className="max-w-sm text-center text-[13px] text-muted-foreground">
+							rendi is an open source agent harness on Trigger.dev. Take it,
+							wire in your own tools, and make it anything you want.
+						</p>
+						<div className="flex items-center gap-2">
+							<a
+								href="https://github.com/mcheemaa/rendi"
+								target="_blank"
+								rel="noreferrer"
+								className={cn(
+									buttonVariants({ variant: "outline" }),
+									"bg-card/75 backdrop-blur-md",
+								)}
+							>
+								View on GitHub
+							</a>
+							<a
+								href="https://www.loom.com/share/5f54dacb9d3f473a8480a9b5cfbd84bd"
+								target="_blank"
+								rel="noreferrer"
+								className={cn(
+									buttonVariants({ variant: "outline" }),
+									"bg-card/75 backdrop-blur-md",
+								)}
+							>
+								Watch the demo
+							</a>
+						</div>
+					</div>
 					{hero !== "hallmark" ? <Hallmark className="mt-9" /> : null}
 				</EmptyContent>
 			</Empty>
