@@ -9,4 +9,6 @@ redrawn or edited. All trademarks belong to their respective owners.
   the animated rendering; re-extract there if this file ever updates.
 - The ClickHouse bars and Trigger.dev triangle are inlined in
   `components/home/hallmark.tsx`, copied from clickhouse.com's and
-  trigger.dev's own published logo SVGs.
+  trigger.dev's own published logo SVGs. The same geometry labels the
+  data and runtime planes in `brand/rendi-harness.svg` and its dark
+  variant, the README's harness diagram.

@@ -2,6 +2,13 @@
 	"name": "rendi",
 	"version": "0.1.0",
 	"private": true,
+	"description": "Questions become interfaces: a chat agent whose answers are live, steerable instruments over ClickHouse, on Trigger.dev durable sessions.",
+	"license": "MIT",
+	"homepage": "https://rendi.help",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/mcheemaa/rendi.git"
+	},
 	"packageManager": "pnpm@10.25.0",
 	"engines": {
 		"node": "^24"
