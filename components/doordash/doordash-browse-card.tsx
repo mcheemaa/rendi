@@ -8,9 +8,9 @@ import {
 	Store,
 	UtensilsCrossed,
 } from "lucide-react";
-import Image from "next/image";
 import { Shimmer } from "@/components/ai-elements/shimmer";
 import { Tool, ToolContent, ToolHeader } from "@/components/ai-elements/tool";
+import { ZoomableImage } from "@/components/doordash/zoomable-image";
 import type { DdMenuItem, DdStore } from "@/lib/rendi/doordash-schemas";
 import { cn } from "@/lib/utils";
 
@@ -76,16 +76,13 @@ function StoreTile({ store }: { store: DdStore }) {
 	return (
 		<div className="flex items-center gap-3 rounded-lg border bg-background/60 p-2.5">
 			{store.image_url ? (
-				<Image
+				<ZoomableImage
 					src={store.image_url}
-					alt=""
-					width={56}
-					height={56}
-					unoptimized
-					className="size-14 shrink-0 rounded-md object-cover"
+					name={store.name}
+					className="size-16"
 				/>
 			) : (
-				<div className="flex size-14 shrink-0 items-center justify-center rounded-md bg-muted">
+				<div className="flex size-16 shrink-0 items-center justify-center rounded-md bg-muted">
 					<Store className="size-5 text-muted-foreground" aria-hidden />
 				</div>
 			)}
@@ -114,13 +111,10 @@ function ItemSpotlight({ item }: { item: NonNullable<BrowseOutput["item"]> }) {
 	return (
 		<div className="flex items-start gap-3">
 			{item.image_url ? (
-				<Image
+				<ZoomableImage
 					src={item.image_url}
-					alt=""
-					width={72}
-					height={72}
-					unoptimized
-					className="size-18 shrink-0 rounded-lg object-cover"
+					name={item.name}
+					className="size-24 rounded-lg"
 				/>
 			) : null}
 			<div className="min-w-0">

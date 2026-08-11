@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
-import { expect, within } from "storybook/test";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 import {
 	itemDetailsFixture,
 	searchFixture,
@@ -54,6 +54,22 @@ export const ItemSpotlight: Story = {
 		await expect(canvas.getAllByText("Tonkotsu Ramen")).toHaveLength(2);
 		await expect(canvas.getByText("$16.50")).toBeVisible();
 		await expect(canvas.getByText(/often: Add Extra Egg/)).toBeVisible();
+		// Thumbnails open to a proper look; escape puts it away.
+		await userEvent.click(
+			canvas.getByRole("button", { name: /View larger: Tonkotsu Ramen/ }),
+		);
+		const dialog = await waitFor(() => {
+			const found = document.querySelector("[role='dialog']");
+			expect(found).not.toBeNull();
+			return found as HTMLElement;
+		});
+		await waitFor(() =>
+			expect(within(dialog).getByAltText("Tonkotsu Ramen")).toBeVisible(),
+		);
+		await userEvent.keyboard("{Escape}");
+		await waitFor(() =>
+			expect(document.querySelector("[role='dialog']")).toBeNull(),
+		);
 	},
 };
 
