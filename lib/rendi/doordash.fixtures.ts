@@ -183,6 +183,150 @@ export const addressListFixture = {
 	],
 };
 
+export const cartShowFixture = {
+	success: true,
+	cart_uuid: "cccccccc-1111-2222-3333-444444444444",
+	widget_type: "cart",
+	assistant_instructions: "Render the widget above.",
+	cart: {
+		id: "cccccccc-1111-2222-3333-444444444444",
+		store_id: "24006",
+		store_name: "Toomie's Thai",
+		items: [
+			{
+				id: "line-1",
+				item_id: "8001",
+				menu_id: "9001",
+				name: "Pad See Ew",
+				description: "Flat rice noodles, egg, broccoli",
+				image_url: "https://img.example/padseeew.jpg",
+				quantity: 3,
+				price: 18.5,
+				nested_options: [
+					{
+						id: "44958508375",
+						quantity: 1,
+						options: [],
+						item_extra_option: { id: "44958508375", name: "Medium" },
+					},
+				],
+			},
+		],
+		items_count: 1,
+		group_cart_url: null,
+		spend_limit_cents: null,
+		is_group_cart: false,
+		subcarts: [],
+	},
+};
+
+export const previewFixture = {
+	success: true,
+	message: "Order preview generated successfully",
+	cart_uuid: "cccccccc-1111-2222-3333-444444444444",
+	quote: {
+		currency: "USD",
+		line_items: [
+			{
+				charge_id: "SUBTOTAL",
+				label: "Subtotal",
+				final_money: {
+					unit_amount: 4398,
+					currency: "USD",
+					display_string: "$43.98",
+					sign: true,
+				},
+			},
+			{
+				charge_id: "DELIVERY_FEE",
+				label: "Delivery Fee",
+				final_money: {
+					unit_amount: 0,
+					currency: "USD",
+					display_string: "$0.00",
+					sign: true,
+				},
+				original_money: {
+					unit_amount: 99,
+					currency: "USD",
+					display_string: "$0.99",
+					sign: true,
+				},
+			},
+			{
+				charge_id: "TAXES_AND_FEES",
+				label: "Fees & Estimated Tax",
+				final_money: {
+					unit_amount: 478,
+					currency: "USD",
+					display_string: "$4.78",
+					sign: true,
+				},
+			},
+			{
+				charge_id: "PROMOTION_DISCOUNT",
+				label: "Discount",
+				final_money: {
+					unit_amount: 1999,
+					currency: "USD",
+					display_string: "-$19.99",
+					sign: false,
+				},
+			},
+		],
+		total_before_tip: {
+			unit_amount: 2877,
+			currency: "USD",
+			display_string: "$28.77",
+			sign: true,
+		},
+		is_pre_tippable: true,
+		delivery_availability: {
+			asap_available: true,
+			asap_pickup_available: true,
+			asap_minutes_range_string: "26-41 min",
+			timezone: "US/Pacific",
+			delivery_options: [
+				{
+					delivery_option_type: "STANDARD",
+					option_title: "Standard",
+					eta_minutes_range: "26-41 min",
+				},
+				{
+					delivery_option_type: "SCHEDULE",
+					option_title: "Schedule",
+					eta_minutes_range: null,
+				},
+			],
+		},
+	},
+};
+
+export const cartAddRequiredOptionsFixture = {
+	success: false,
+	message: "Some items need choices",
+	cart_uuid: null,
+	cart: null,
+	item_errors: [
+		{
+			item_id: "8002",
+			item_name: "Boba Tea",
+			error_message: "Required options missing",
+			required_options: [
+				{
+					name: "Ice Level",
+					min_num_options: 1,
+					max_num_options: 1,
+					options: [
+						{ id: "o-ice-1", name: "Regular Ice" },
+						{ id: "o-ice-2", name: "Less Ice" },
+					],
+				},
+			],
+		},
+	],
+};
+
 export const paymentMethodsFixture = {
 	success: true,
 	message: "",

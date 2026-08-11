@@ -11,6 +11,11 @@ import {
 } from "drizzle-orm/pg-core";
 import type { CanvasDoc } from "../rendi/canvas";
 import type { OpEntry } from "../rendi/canvas-ops";
+import type {
+	DdCartLine,
+	DdCartStatus,
+	DdQuoteSnapshot,
+} from "../rendi/doordash-cart";
 import type { InstrumentSpec, Present } from "../rendi/instrument";
 
 export const conversations = pgTable("conversations", {
@@ -222,8 +227,93 @@ export const emails = pgTable(
 	(table) => [index("emails_conversation_idx").on(table.conversationId)],
 );
 
+// DoorDash render snapshots: the cart's truth lives at DoorDash, these
+// rows are what cards paint from and what history renders forever.
+export const ddCarts = pgTable(
+	"dd_carts",
+	{
+		cartUuid: text("cart_uuid").primaryKey(),
+		conversationId: text("conversation_id")
+			.notNull()
+			.references(() => conversations.id),
+		storeId: text("store_id").notNull(),
+		storeName: text("store_name").notNull(),
+		storeImageUrl: text("store_image_url"),
+		items: jsonb("items").notNull().$type<DdCartLine[]>(),
+		quote: jsonb("quote").$type<DdQuoteSnapshot>(),
+		fulfillment: text("fulfillment").notNull().default("delivery"),
+		scheduledTime: text("scheduled_time"),
+		tipCents: integer("tip_cents").notNull().default(0),
+		status: text("status").notNull().default("open").$type<DdCartStatus>(),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.notNull()
+			.defaultNow(),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
+			.notNull()
+			.defaultNow(),
+	},
+	(table) => [index("dd_carts_conversation_idx").on(table.conversationId)],
+);
+
+// One-time-code approvals: single-use, hash-bound to the exact previewed
+// cart, only satisfiable by a code from the owner's inbox. The code
+// itself never persists and never enters the transcript.
+export const ddApprovals = pgTable(
+	"dd_approvals",
+	{
+		id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+		conversationId: text("conversation_id").notNull(),
+		cartUuid: text("cart_uuid").notNull(),
+		cartHash: text("cart_hash").notNull(),
+		totalCents: integer("total_cents").notNull(),
+		tipCents: integer("tip_cents").notNull(),
+		codeHash: text("code_hash").notNull(),
+		expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+		attempts: integer("attempts").notNull().default(0),
+		verifiedAt: timestamp("verified_at", { withTimezone: true }),
+		consumedAt: timestamp("consumed_at", { withTimezone: true }),
+		voidedAt: timestamp("voided_at", { withTimezone: true }),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.notNull()
+			.defaultNow(),
+	},
+	(table) => [index("dd_approvals_cart_idx").on(table.cartUuid)],
+);
+
+// One row per submission attempt, keyed by its approval so a re-fired
+// turn reads the recorded outcome instead of charging twice. Also the
+// daily-cap counter.
+export const ddOrders = pgTable(
+	"dd_orders",
+	{
+		id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+		approvalId: integer("approval_id")
+			.notNull()
+			.unique()
+			.references(() => ddApprovals.id),
+		conversationId: text("conversation_id").notNull(),
+		cartUuid: text("cart_uuid").notNull(),
+		orderUuid: text("order_uuid"),
+		storeName: text("store_name").notNull(),
+		totalCents: integer("total_cents").notNull(),
+		status: text("status").notNull().default("pending"),
+		errorMessage: text("error_message"),
+		receipt: jsonb("receipt"),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.notNull()
+			.defaultNow(),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
+			.notNull()
+			.defaultNow(),
+	},
+	(table) => [index("dd_orders_created_idx").on(table.createdAt)],
+);
+
 export type ConversationRow = typeof conversations.$inferSelect;
 export type MessageRow = typeof messages.$inferSelect;
+export type DdCartRow = typeof ddCarts.$inferSelect;
+export type DdApprovalRow = typeof ddApprovals.$inferSelect;
+export type DdOrderRow = typeof ddOrders.$inferSelect;
 export type InstrumentRow = typeof instruments.$inferSelect;
 export type InstrumentOpRow = typeof instrumentOps.$inferSelect;
 export type CanvasRow = typeof canvases.$inferSelect;

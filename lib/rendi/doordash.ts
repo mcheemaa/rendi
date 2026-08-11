@@ -3,11 +3,14 @@ import { promisify } from "node:util";
 import type { z } from "zod";
 import {
 	ddAddressList,
+	ddCartEnvelope,
+	ddCartList,
 	ddItemDetails,
 	ddLenient,
 	ddMenuResult,
 	ddOrderHistory,
 	ddPaymentMethods,
+	ddPreviewResult,
 	ddSearchResult,
 	ddStoreDetails,
 } from "./doordash-schemas.ts";
@@ -194,6 +197,135 @@ export async function orderReceipt(orderUuid: string, goal: string) {
 		["order", "receipt", "--order-uuid", orderUuid],
 		goal,
 	);
+}
+
+export type DdNewCartItem = {
+	item_id: string;
+	item_name: string;
+	quantity: number;
+	nested_options?: {
+		id: string;
+		name: string;
+		quantity: number;
+		options?: DdNewCartItem["nested_options"];
+	}[];
+};
+
+export async function cartList(goal: string, storeId?: string) {
+	const args = ["cart", "list"];
+	if (storeId) args.push("--store-id", storeId);
+	return parsed(ddCartList, args, goal);
+}
+
+export async function cartAddItems(
+	input: {
+		storeId: string;
+		menuId: string;
+		items: DdNewCartItem[];
+		cartUuid?: string;
+		fulfillment?: "delivery" | "pickup";
+	},
+	goal: string,
+) {
+	const args = [
+		"cart",
+		"add-items",
+		"--store-id",
+		input.storeId,
+		"--menu-id",
+		input.menuId,
+		"--items-json",
+		JSON.stringify(
+			// The menu lists ids as i_123...; the cart wants them bare.
+			input.items.map((item) => ({
+				...item,
+				item_id: item.item_id.replace(/^i_/, ""),
+			})),
+		),
+	];
+	if (input.cartUuid) args.push("--cart-uuid", input.cartUuid);
+	if (input.fulfillment) args.push("--fulfillment", input.fulfillment);
+	return parsed(ddCartEnvelope, args, goal);
+}
+
+export async function cartShow(cartUuid: string, goal: string) {
+	return parsed(
+		ddCartEnvelope,
+		["cart", "show", "--cart-uuid", cartUuid],
+		goal,
+	);
+}
+
+export async function cartRemoveItem(
+	input: { cartUuid: string; cartItemId: string },
+	goal: string,
+) {
+	return parsed(
+		ddCartEnvelope,
+		[
+			"cart",
+			"remove-item",
+			"--cart-uuid",
+			input.cartUuid,
+			"--cart-item-id",
+			input.cartItemId,
+		],
+		goal,
+	);
+}
+
+export async function cartDelete(cartUuid: string, goal: string) {
+	return parsed(
+		ddCartEnvelope,
+		["cart", "delete", "--cart-uuid", cartUuid],
+		goal,
+	);
+}
+
+export async function orderPreview(
+	input: {
+		cartUuid: string;
+		fulfillment?: "delivery" | "pickup";
+		scheduledTime?: string;
+		priority?: boolean;
+	},
+	goal: string,
+) {
+	const args = ["order", "preview", "--cart-uuid", input.cartUuid];
+	// Passing --fulfillment FLIPS the cart's stored mode; callers treat
+	// that as a write, never a read.
+	if (input.fulfillment) args.push("--fulfillment", input.fulfillment);
+	if (input.scheduledTime) args.push("--scheduled-time", input.scheduledTime);
+	if (input.priority) args.push("--priority");
+	return parsed(ddPreviewResult, args, goal);
+}
+
+export async function promoApply(
+	input: {
+		cartUuid: string;
+		promoCode: string;
+		campaignId?: string;
+		adGroupId?: string;
+		adId?: string;
+	},
+	goal: string,
+) {
+	const args = [
+		"promo",
+		"apply",
+		"--cart-uuid",
+		input.cartUuid,
+		"--promo-code",
+		input.promoCode,
+	];
+	if (input.campaignId) args.push("--campaign-id", input.campaignId);
+	if (input.adGroupId) args.push("--ad-group-id", input.adGroupId);
+	if (input.adId) args.push("--ad-id", input.adId);
+	return parsed(ddLenient, args, goal);
+}
+
+export async function promoList(storeId: string, goal: string) {
+	return parsed(ddLenient, ["promo", "list", "--store-id", storeId], goal);
 }
 
 export async function addressList(goal: string) {
