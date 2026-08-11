@@ -22,9 +22,12 @@ export function maxOrdersPerDay(): number {
 
 // Twenty strangers with gate codes must not be able to bomb the owner's
 // inbox: requests are capped per conversation per hour and globally per
-// day, tunable for a challenge window.
+// day. The daily budget is env-tunable for a challenge window.
 const APPROVALS_PER_CONVERSATION_HOUR = 3;
-const APPROVALS_PER_DAY = 15;
+
+export function maxApprovalsPerDay(): number {
+	return Number(process.env.DD_MAX_APPROVALS_PER_DAY ?? 15);
+}
 
 export function hashCart(input: {
 	items: DdCartLine[];
@@ -99,7 +102,7 @@ export async function checkCaps(
 		.select({ n: count() })
 		.from(ddApprovals)
 		.where(gt(ddApprovals.createdAt, dayAgo));
-	if ((today?.n ?? 0) >= APPROVALS_PER_DAY) {
+	if ((today?.n ?? 0) >= maxApprovalsPerDay()) {
 		return { denied: "the approval inbox is closed for today" };
 	}
 	return null;

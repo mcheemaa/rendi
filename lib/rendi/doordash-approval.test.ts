@@ -254,4 +254,20 @@ describe("checkCaps", () => {
 		const denied = await checkCaps(3317, "conv-fresh");
 		expect(denied?.denied).toContain("closed for today");
 	});
+
+	it("the daily budget widens by env for a challenge window", async () => {
+		const original = process.env.DD_MAX_APPROVALS_PER_DAY;
+		process.env.DD_MAX_APPROVALS_PER_DAY = "2";
+		try {
+			await mintApproval({ conversationId: "conv-a", cartUuid: "cart-a" });
+			await mintApproval({ conversationId: "conv-b", cartUuid: "cart-b" });
+			const denied = await checkCaps(3317, "conv-c");
+			expect(denied?.denied).toContain("closed for today");
+			process.env.DD_MAX_APPROVALS_PER_DAY = "40";
+			expect(await checkCaps(3317, "conv-c")).toBeNull();
+		} finally {
+			if (original === undefined) delete process.env.DD_MAX_APPROVALS_PER_DAY;
+			else process.env.DD_MAX_APPROVALS_PER_DAY = original;
+		}
+	});
 });

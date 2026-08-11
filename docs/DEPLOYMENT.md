@@ -132,6 +132,7 @@ Setup:
 | `DD_CLI_ACCESS_TOKEN` | with DoorDash | Trigger | Headless auth for deployed workers, from `dd-cli export-token`. Local dev uses `dd-cli login` instead. |
 | `DD_MAX_ORDER_CENTS` | defaults to `10000` | local, Trigger | Order ceiling in cents, enforced below the agent. |
 | `DD_MAX_ORDERS_PER_DAY` | defaults to `3` | local, Trigger | Daily order budget. |
+| `DD_MAX_APPROVALS_PER_DAY` | defaults to `15` | local, Trigger | Daily budget of approval requests (code emails). Widen it when many guests share the instance. |
 | `DD_HIDE_PERSONAL` | optional | local, Trigger | `1` hides saved addresses, payment methods, and order history from the agent; for instances strangers can drive. |
 
 ## Traps we hit, so you do not have to
