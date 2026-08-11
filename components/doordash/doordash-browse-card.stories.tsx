@@ -95,3 +95,19 @@ export const Failed: Story = {
 		await expect(canvas.getByText("Store is closed")).toBeVisible();
 	},
 };
+
+export const Private: Story = {
+	args: {
+		state: "output-available",
+		input: { verb: "addresses" },
+		output: { private: true, note: "the owner keeps that private" },
+	},
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement);
+		// Never "0 saved": hidden is not empty.
+		await expect(
+			canvas.getByText("the owner keeps that private"),
+		).toBeVisible();
+		await expect(canvas.getByText("private")).toBeVisible();
+	},
+};
