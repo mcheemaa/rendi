@@ -13,7 +13,9 @@ export type DdCartLine = {
 	quantity: number;
 	priceCents: number | null;
 	imageUrl?: string | null;
-	options: string[];
+	// Ids ride along so a quantity change can re-add the line with the
+	// exact same modifiers, which is what keeps the backend merging.
+	options: { id: string; name: string }[];
 };
 
 export type DdQuoteSnapshot = {
@@ -57,9 +59,11 @@ export function normalizeCartLines(
 		quantity: line.quantity,
 		priceCents: dollarsToCents(line.price),
 		imageUrl: line.image_url ?? null,
-		options: line.nested_options
-			.map((option) => option.item_extra_option?.name ?? "")
-			.filter(Boolean),
+		options: line.nested_options.flatMap((option) => {
+			const name = option.item_extra_option?.name;
+			const optionId = option.item_extra_option?.id ?? option.id;
+			return name && optionId ? [{ id: optionId, name }] : [];
+		}),
 	}));
 }
 

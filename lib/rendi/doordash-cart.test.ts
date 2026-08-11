@@ -17,7 +17,7 @@ describe("cart wire shapes", () => {
 			itemId: "8001",
 			quantity: 3,
 			priceCents: 1850,
-			options: ["Medium"],
+			options: [{ id: "44958508375", name: "Medium" }],
 		});
 	});
 
