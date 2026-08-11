@@ -17,18 +17,18 @@ export async function POST(
 		return Response.json({ error: "bad approval" }, { status: 400 });
 	}
 	const [row] = await getDb()
-		.select({
-			cartUuid: ddApprovals.cartUuid,
-			consumedAt: ddApprovals.consumedAt,
-		})
+		.select({ cartUuid: ddApprovals.cartUuid })
 		.from(ddApprovals)
 		.where(eq(ddApprovals.id, approvalId));
 	if (!row)
 		return Response.json({ error: "no such approval" }, { status: 404 });
-	if (row.consumedAt) {
+	// The void itself is the arbiter: if submission consumed the row
+	// between any read and now, nothing voids and the cart must not
+	// reopen under an order that is already being placed.
+	const voided = await voidApproval(approvalId);
+	if (!voided) {
 		return Response.json({ error: "already used" }, { status: 409 });
 	}
-	await voidApproval(approvalId);
 	await setCartStatus(row.cartUuid, "open");
 	return Response.json({ ok: true });
 }

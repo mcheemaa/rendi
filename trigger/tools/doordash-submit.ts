@@ -7,6 +7,7 @@ import * as dd from "@/lib/rendi/doordash";
 import {
 	consumeApproval,
 	hashCart,
+	reserveOrderSlot,
 	totalWithTip,
 	voidApproval,
 } from "@/lib/rendi/doordash-approval";
@@ -127,18 +128,23 @@ export const doordashSubmit = tool({
 		}
 
 		// The order row lands BEFORE the charge, so a crash mid-submit
-		// leaves an honest pending record instead of a silent maybe.
-		const [orderRow] = await getDb()
-			.insert(ddOrders)
-			.values({
-				approvalId,
-				conversationId: approval.conversationId,
-				cartUuid: approval.cartUuid,
-				storeName: snapshot.storeName,
-				totalCents: approval.totalCents,
-				status: "pending",
-			})
-			.returning({ id: ddOrders.id });
+		// leaves an honest pending record instead of a silent maybe; the
+		// reservation is atomic so racing approvals cannot double-spend
+		// the last daily slot.
+		const slot = await reserveOrderSlot({
+			approvalId,
+			conversationId: approval.conversationId,
+			cartUuid: approval.cartUuid,
+			storeName: snapshot.storeName,
+			totalCents: approval.totalCents,
+		});
+		if ("denied" in slot) {
+			await setCartStatus(approval.cartUuid, "open");
+			return {
+				refused: `${slot.denied}; this approval is spent either way`,
+			};
+		}
+		const orderRow = { id: slot.orderId };
 		await setCartStatus(approval.cartUuid, "placing");
 
 		let orderUuid: string | null = null;

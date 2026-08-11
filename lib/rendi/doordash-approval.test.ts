@@ -7,6 +7,8 @@ import {
 	consumeApproval,
 	createApproval,
 	hashCart,
+	maxOrderCents,
+	reserveOrderSlot,
 	totalWithTip,
 	verifyApproval,
 	voidApproval,
@@ -201,12 +203,61 @@ describe("the approval lifecycle", () => {
 		});
 	});
 
-	it("void never rewinds a consumed approval", async () => {
+	it("void never rewinds a consumed approval, and says so", async () => {
 		const approval = await mintApproval();
-		await verifyApproval(approval.id, approval.code);
-		await consumeApproval(approval.id);
-		await voidApproval(approval.id);
-		expect((await row(approval.id)).voidedAt).toBeNull();
+		expect(await voidApproval(approval.id)).toBe(true);
+		const second = await mintApproval();
+		await verifyApproval(second.id, second.code);
+		await consumeApproval(second.id);
+		expect(await voidApproval(second.id)).toBe(false);
+		expect((await row(second.id)).voidedAt).toBeNull();
+	});
+});
+
+describe("cap parsing", () => {
+	it("blank and junk env values mean the defaults", () => {
+		const original = process.env.DD_MAX_ORDER_CENTS;
+		try {
+			process.env.DD_MAX_ORDER_CENTS = "";
+			expect(maxOrderCents()).toBe(10_000);
+			process.env.DD_MAX_ORDER_CENTS = "junk";
+			expect(maxOrderCents()).toBe(10_000);
+			process.env.DD_MAX_ORDER_CENTS = "2500";
+			expect(maxOrderCents()).toBe(2500);
+		} finally {
+			if (original === undefined) delete process.env.DD_MAX_ORDER_CENTS;
+			else process.env.DD_MAX_ORDER_CENTS = original;
+		}
+	});
+});
+
+describe("reserveOrderSlot", () => {
+	it("the last daily slot cannot be spent twice", async () => {
+		const original = process.env.DD_MAX_ORDERS_PER_DAY;
+		process.env.DD_MAX_ORDERS_PER_DAY = "1";
+		try {
+			const first = await mintApproval({ cartUuid: "cart-r1" });
+			const second = await mintApproval({ cartUuid: "cart-r2" });
+			const win = await reserveOrderSlot({
+				approvalId: first.id,
+				conversationId: "conv-1",
+				cartUuid: "cart-r1",
+				storeName: "Toomie's Thai",
+				totalCents: 3317,
+			});
+			expect("orderId" in win).toBe(true);
+			const lose = await reserveOrderSlot({
+				approvalId: second.id,
+				conversationId: "conv-1",
+				cartUuid: "cart-r2",
+				storeName: "Toomie's Thai",
+				totalCents: 3317,
+			});
+			expect("denied" in lose && lose.denied).toContain("daily cap");
+		} finally {
+			if (original === undefined) delete process.env.DD_MAX_ORDERS_PER_DAY;
+			else process.env.DD_MAX_ORDERS_PER_DAY = original;
+		}
 	});
 });
 

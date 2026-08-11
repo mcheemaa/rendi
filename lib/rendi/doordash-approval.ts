@@ -12,12 +12,21 @@ import type { DdCartLine, DdQuoteSnapshot } from "./doordash-cart.ts";
 const CODE_TTL_MS = 15 * 60 * 1000;
 const MAX_ATTEMPTS = 5;
 
+// Number("") is 0 and Number("junk") is NaN; a copied template with
+// blank values must mean the defaults, never a zero-dollar ceiling.
+function envInt(name: string, fallback: number): number {
+	const raw = process.env[name]?.trim();
+	if (!raw) return fallback;
+	const value = Number(raw);
+	return Number.isFinite(value) ? value : fallback;
+}
+
 export function maxOrderCents(): number {
-	return Number(process.env.DD_MAX_ORDER_CENTS ?? 10_000);
+	return envInt("DD_MAX_ORDER_CENTS", 10_000);
 }
 
 export function maxOrdersPerDay(): number {
-	return Number(process.env.DD_MAX_ORDERS_PER_DAY ?? 3);
+	return envInt("DD_MAX_ORDERS_PER_DAY", 3);
 }
 
 // Twenty strangers with gate codes must not be able to bomb the owner's
@@ -26,7 +35,7 @@ export function maxOrdersPerDay(): number {
 const APPROVALS_PER_CONVERSATION_HOUR = 3;
 
 export function maxApprovalsPerDay(): number {
-	return Number(process.env.DD_MAX_APPROVALS_PER_DAY ?? 15);
+	return envInt("DD_MAX_APPROVALS_PER_DAY", 15);
 }
 
 export function hashCart(input: {
@@ -240,9 +249,55 @@ export async function consumeApproval(
 	});
 }
 
-export async function voidApproval(approvalId: number): Promise<void> {
-	await getDb()
+// True when a row actually voided; a consumed approval never rewinds,
+// and callers that reopen carts must know the difference.
+export async function voidApproval(approvalId: number): Promise<boolean> {
+	const rows = await getDb()
 		.update(ddApprovals)
 		.set({ voidedAt: new Date() })
-		.where(and(eq(ddApprovals.id, approvalId), isNull(ddApprovals.consumedAt)));
+		.where(and(eq(ddApprovals.id, approvalId), isNull(ddApprovals.consumedAt)))
+		.returning({ id: ddApprovals.id });
+	return rows.length > 0;
+}
+
+export type OrderSlot = { orderId: number } | { denied: string };
+
+// The daily budget must hold even when several verified approvals race
+// to submit: the count and the insert serialize under one advisory
+// lock, so overlapping submits cannot double-spend the last slot.
+export async function reserveOrderSlot(input: {
+	approvalId: number;
+	conversationId: string;
+	cartUuid: string;
+	storeName: string;
+	totalCents: number;
+}): Promise<OrderSlot> {
+	const db = getDb();
+	return db.transaction(async (tx) => {
+		await tx.execute(
+			sql`select pg_advisory_xact_lock(hashtext('dd_orders_daily'))`,
+		);
+		const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+		const [orders] = await tx
+			.select({ n: count() })
+			.from(ddOrders)
+			.where(gt(ddOrders.createdAt, dayAgo));
+		if ((orders?.n ?? 0) >= maxOrdersPerDay()) {
+			return {
+				denied: `the daily cap of ${maxOrdersPerDay()} orders is spent`,
+			};
+		}
+		const [row] = await tx
+			.insert(ddOrders)
+			.values({
+				approvalId: input.approvalId,
+				conversationId: input.conversationId,
+				cartUuid: input.cartUuid,
+				storeName: input.storeName,
+				totalCents: input.totalCents,
+				status: "pending",
+			})
+			.returning({ id: ddOrders.id });
+		return { orderId: row.id };
+	});
 }

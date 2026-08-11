@@ -8,6 +8,7 @@ import {
 	createApproval,
 	hashCart,
 	totalWithTip,
+	voidApproval,
 } from "@/lib/rendi/doordash-approval";
 import { setCartStatus } from "@/lib/rendi/doordash-db";
 import { sendApprovalEmail } from "@/lib/rendi/doordash-email";
@@ -74,17 +75,25 @@ export const doordashRequestApproval = tool({
 			.select({ title: conversations.title })
 			.from(conversations)
 			.where(eq(conversations.id, conversationId));
-		await sendApprovalEmail({
-			code: approval.code,
-			storeName: priced.storeName,
-			itemsCount: priced.items.reduce((sum, line) => sum + line.quantity, 0),
-			totalDisplay: `$${(totalCents / 100).toFixed(2)}`,
-			destination:
-				priced.fulfillment === "pickup" ? "pickup" : "the saved address",
-			conversationTitle: conversation?.title ?? "a conversation",
-			minutes: 15,
-			approvalId: approval.id,
-		});
+		try {
+			await sendApprovalEmail({
+				code: approval.code,
+				storeName: priced.storeName,
+				itemsCount: priced.items.reduce((sum, line) => sum + line.quantity, 0),
+				totalDisplay: `$${(totalCents / 100).toFixed(2)}`,
+				destination:
+					priced.fulfillment === "pickup" ? "pickup" : "the saved address",
+				conversationTitle: conversation?.title ?? "a conversation",
+				minutes: 15,
+				approvalId: approval.id,
+			});
+		} catch {
+			// An approval whose code nobody received must not stay live. It
+			// still counts toward the rate caps: excluding voided rows would
+			// let re-requests reset the meter, which is the attack.
+			await voidApproval(approval.id);
+			return { denied: "the code email would not send; nothing is pending" };
+		}
 		await setCartStatus(cartUuid, "awaiting_code");
 		return {
 			approvalId: approval.id,
