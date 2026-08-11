@@ -1,7 +1,7 @@
 "use client";
 
 import { ShoppingBag } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Shimmer } from "@/components/ai-elements/shimmer";
 import { CartLine } from "@/components/doordash/cart-line";
 import { ZoomableImage } from "@/components/doordash/zoomable-image";
@@ -73,6 +73,9 @@ export function CartCard({
 	const [status, setStatus] = useState<string>("open");
 	const [busy, setBusy] = useState(false);
 	const [failed, setFailed] = useState<string | null>(null);
+	// The freshest settled truth: hydration or a completed edit. A failed
+	// edit rolls back here, never to the frozen transcript prop.
+	const lastGood = useRef<CartCardData>(data);
 
 	// The transcript froze this card's numbers at tool time; the cart
 	// kept living. Adopt the durable snapshot so a reload, or an older
@@ -82,15 +85,19 @@ export function CartCard({
 		hydrate(data.cartUuid).then((durable) => {
 			if (!alive || !durable) return;
 			setStatus(durable.status ?? "open");
-			setCart((current) => ({
-				...current,
-				...(durable.items ? { items: durable.items } : {}),
-				...(durable.quote !== undefined ? { quote: durable.quote } : {}),
-				...(durable.tipCents !== undefined
-					? { tipCents: durable.tipCents }
-					: {}),
-				...(durable.fulfillment ? { fulfillment: durable.fulfillment } : {}),
-			}));
+			setCart((current) => {
+				const next = {
+					...current,
+					...(durable.items ? { items: durable.items } : {}),
+					...(durable.quote !== undefined ? { quote: durable.quote } : {}),
+					...(durable.tipCents !== undefined
+						? { tipCents: durable.tipCents }
+						: {}),
+					...(durable.fulfillment ? { fulfillment: durable.fulfillment } : {}),
+				};
+				lastGood.current = next;
+				return next;
+			});
 		});
 		return () => {
 			alive = false;
@@ -110,17 +117,21 @@ export function CartCard({
 		try {
 			const result = await exec(cart.cartUuid, op);
 			if (result.cart) {
-				setCart((current) => ({
-					...current,
-					...(result.cart as Partial<CartCardData>),
-					storeName:
-						(result.cart as Partial<CartCardData>).storeName ??
-						current.storeName,
-				}));
+				setCart((current) => {
+					const next = {
+						...current,
+						...(result.cart as Partial<CartCardData>),
+						storeName:
+							(result.cart as Partial<CartCardData>).storeName ??
+							current.storeName,
+					};
+					lastGood.current = next;
+					return next;
+				});
 			}
 		} catch {
 			setFailed("that edit did not go through; prices unchanged");
-			setCart(data);
+			setCart(lastGood.current);
 		} finally {
 			setBusy(false);
 		}

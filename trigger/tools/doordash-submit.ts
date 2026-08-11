@@ -2,7 +2,7 @@ import { tool } from "ai";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/lib/db/index";
-import { ddOrders } from "@/lib/db/schema";
+import { type DdCartRow, ddCarts, ddOrders } from "@/lib/db/schema";
 import * as dd from "@/lib/rendi/doordash";
 import {
 	consumeApproval,
@@ -119,64 +119,112 @@ export const doordashSubmit = tool({
 		// outcome, both hands are off, and the ops layer refuses mutations
 		// against placing carts so nothing can drift mid-submission.
 		await setCartStatus(approval.cartUuid, "placing");
-		const snapshot = await getCartSnapshot(approval.cartUuid);
-		if (!snapshot) return { refused: "the cart is gone" };
 
-		// The tip lives in our snapshot, not at DoorDash, so the cart hash
-		// cannot see it move; compare it directly. The email promised any
-		// change voids the code, and the tip is a change.
-		if (snapshot.tipCents !== approval.tipCents) {
-			await voidApproval(approvalId);
-			await setCartStatus(approval.cartUuid, "voided");
-			return {
-				voided:
-					"the tip changed after the code was sent; request a fresh approval",
+		// Everything before the charge can crash (the CLI, the database);
+		// a pre-flight failure must never strand a sealed cart with a spent
+		// approval and no order row.
+		let prepared:
+			| { snapshot: DdCartRow; orderRowId: number; sealStamp: Date }
+			| undefined;
+		try {
+			const snapshot = await getCartSnapshot(approval.cartUuid);
+			if (!snapshot) {
+				await setCartStatus(approval.cartUuid, "open");
+				return { refused: "the cart is gone" };
+			}
+
+			// The tip lives in our snapshot, not at DoorDash, so the cart
+			// hash cannot see it move; compare it directly. The email
+			// promised any change voids the code, and the tip is a change.
+			if (snapshot.tipCents !== approval.tipCents) {
+				await voidApproval(approvalId);
+				await setCartStatus(approval.cartUuid, "voided");
+				return {
+					voided:
+						"the tip changed after the code was sent; request a fresh approval",
+				};
+			}
+
+			// Revalidate against live truth: the owner approved a frozen
+			// cart, so any drift since the email voids the approval.
+			const shown = await dd.cartShow(approval.cartUuid, goal);
+			const preview = await dd.orderPreview(
+				{ cartUuid: approval.cartUuid },
+				goal,
+			);
+			const items = normalizeCartLines(shown.cart ?? null);
+			const quote = normalizeQuote(preview);
+			const liveTotal = quote ? totalWithTip(quote, approval.tipCents) : null;
+			const liveHash = hashCart({
+				items,
+				totalCents: liveTotal ?? -1,
+				tipCents: approval.tipCents,
+				fulfillment: snapshot.fulfillment,
+			});
+			if (liveHash !== approval.cartHash) {
+				await voidApproval(approvalId);
+				await setCartStatus(approval.cartUuid, "voided");
+				return {
+					voided:
+						"the cart changed after the code was sent; request a fresh approval",
+				};
+			}
+
+			// The order row lands BEFORE the charge, so a crash mid-submit
+			// leaves an honest pending record instead of a silent maybe; the
+			// reservation is atomic so racing approvals cannot double-spend
+			// the last daily slot.
+			const slot = await reserveOrderSlot({
+				approvalId,
+				conversationId: approval.conversationId,
+				cartUuid: approval.cartUuid,
+				storeName: snapshot.storeName,
+				totalCents: approval.totalCents,
+			});
+			if ("denied" in slot) {
+				await setCartStatus(approval.cartUuid, "open");
+				return {
+					refused: `${slot.denied}; this approval is spent either way`,
+				};
+			}
+			// The seal write preceded this snapshot read, so its updatedAt
+			// is the seal-time stamp every later write would move.
+			prepared = {
+				snapshot,
+				orderRowId: slot.orderId,
+				sealStamp: snapshot.updatedAt,
 			};
-		}
-
-		// Revalidate against live truth: the owner approved a frozen cart,
-		// so any drift since the email voids the approval, honestly.
-		const shown = await dd.cartShow(approval.cartUuid, goal);
-		const preview = await dd.orderPreview(
-			{ cartUuid: approval.cartUuid },
-			goal,
-		);
-		const items = normalizeCartLines(shown.cart ?? null);
-		const quote = normalizeQuote(preview);
-		const liveTotal = quote ? totalWithTip(quote, approval.tipCents) : null;
-		const liveHash = hashCart({
-			items,
-			totalCents: liveTotal ?? -1,
-			tipCents: approval.tipCents,
-			fulfillment: snapshot.fulfillment,
-		});
-		if (liveHash !== approval.cartHash) {
-			await voidApproval(approvalId);
-			await setCartStatus(approval.cartUuid, "voided");
-			return {
-				voided:
-					"the cart changed after the code was sent; request a fresh approval",
-			};
-		}
-
-		// The order row lands BEFORE the charge, so a crash mid-submit
-		// leaves an honest pending record instead of a silent maybe; the
-		// reservation is atomic so racing approvals cannot double-spend
-		// the last daily slot.
-		const slot = await reserveOrderSlot({
-			approvalId,
-			conversationId: approval.conversationId,
-			cartUuid: approval.cartUuid,
-			storeName: snapshot.storeName,
-			totalCents: approval.totalCents,
-		});
-		if ("denied" in slot) {
+		} catch (error) {
 			await setCartStatus(approval.cartUuid, "open");
 			return {
-				refused: `${slot.denied}; this approval is spent either way`,
+				refused: `the pre-flight failed before anything was charged (${
+					error instanceof Error ? error.message : "unknown error"
+				}); this approval is spent, ask for a fresh one`,
 			};
 		}
-		const orderRow = { id: slot.orderId };
+		if (!prepared) return { refused: "the pre-flight never completed" };
+		const { snapshot, orderRowId } = prepared;
+		const orderRow = { id: orderRowId };
+
+		// Last look before money: any write since the seal means a mutation
+		// slipped past it while the pre-flight CLI calls were in the air.
+		// The residual window is the submit call itself, which no caller
+		// outside DoorDash can make atomic.
+		const [stamp] = await getDb()
+			.select({ updatedAt: ddCarts.updatedAt })
+			.from(ddCarts)
+			.where(eq(ddCarts.cartUuid, approval.cartUuid));
+		if (!stamp || stamp.updatedAt.getTime() !== prepared.sealStamp.getTime()) {
+			await recordOutcome(orderRow.id, {
+				status: "aborted",
+				errorMessage: "the cart changed during submission",
+			});
+			await setCartStatus(approval.cartUuid, "open");
+			return {
+				voided:
+					"the cart changed during submission; nothing was charged, request a fresh approval",
+			};
+		}
 
 		let orderUuid: string | null = null;
 		try {

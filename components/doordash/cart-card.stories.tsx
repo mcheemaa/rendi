@@ -133,3 +133,31 @@ export const HydratesFromDurableTruth: Story = {
 		);
 	},
 };
+
+export const FailedEditKeepsDurableTruth: Story = {
+	args: {
+		hydrate: fn(async () => ({ status: "open", tipCents: 880 })),
+		exec: fn(async () => {
+			throw new Error("edit failed");
+		}),
+	},
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement);
+		await waitFor(async () =>
+			expect(canvas.getByRole("button", { name: "20%" })).toHaveAttribute(
+				"aria-pressed",
+				"true",
+			),
+		);
+		await userEvent.click(canvas.getByRole("button", { name: "15%" }));
+		await expect(
+			await canvas.findByText("that edit did not go through; prices unchanged"),
+		).toBeVisible();
+		// The rollback lands on the hydrated truth, never the frozen
+		// transcript numbers.
+		await expect(canvas.getByRole("button", { name: "20%" })).toHaveAttribute(
+			"aria-pressed",
+			"true",
+		);
+	},
+};

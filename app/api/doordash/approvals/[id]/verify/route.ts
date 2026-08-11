@@ -44,15 +44,18 @@ export async function POST(
 		.from(ddApprovals)
 		.where(eq(ddApprovals.id, approvalId));
 	// The row is already verified; losing the wake must not lose the
-	// approval, so the bell rings up to three times and the card is told
-	// honestly when nobody answered.
+	// approval, so the bell rings up to three times under ONE message id
+	// (a commit-then-lost-response send must not wake the agent twice),
+	// and the card is told honestly when nobody answered.
 	let woke = false;
 	if (row) {
+		const wakeId = crypto.randomUUID();
 		for (let attempt = 0; attempt < 3 && !woke; attempt++) {
 			try {
 				await sendSessionText(
 					row.conversationId,
 					`[order approved, approval ${approvalId}] The owner entered the code. Place the order with doordash-submit.`,
+					wakeId,
 				);
 				woke = true;
 			} catch {
