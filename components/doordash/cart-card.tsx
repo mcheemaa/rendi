@@ -1,7 +1,7 @@
 "use client";
 
 import { ShoppingBag } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Shimmer } from "@/components/ai-elements/shimmer";
 import { CartLine } from "@/components/doordash/cart-line";
 import { ZoomableImage } from "@/components/doordash/zoomable-image";
@@ -43,6 +43,14 @@ async function execOp(
 	return response.json();
 }
 
+export type DurableCart = Partial<CartCardData> & { status?: string };
+
+async function fetchSnapshot(cartUuid: string): Promise<DurableCart | null> {
+	const response = await fetch(`/api/doordash/carts/${cartUuid}`);
+	if (!response.ok) return null;
+	return response.json();
+}
+
 const TIP_PRESETS = [10, 15, 20];
 
 function dollars(cents: number): string {
@@ -51,18 +59,53 @@ function dollars(cents: number): string {
 
 // The cart is an instrument: live truth rendered as a card, steered by
 // touch without the model, and every change lands where the agent reads
-// it back. exec is injectable so stories run on fixtures.
+// it back. exec and hydrate are injectable so stories run on fixtures.
 export function CartCard({
 	data,
 	exec = execOp,
+	hydrate = fetchSnapshot,
 }: {
 	data: CartCardData;
 	exec?: typeof execOp;
+	hydrate?: typeof fetchSnapshot;
 }) {
 	const [cart, setCart] = useState<CartCardData>(data);
+	const [status, setStatus] = useState<string>("open");
 	const [busy, setBusy] = useState(false);
 	const [failed, setFailed] = useState<string | null>(null);
+	// The freshest settled truth: hydration or a completed edit. A failed
+	// edit rolls back here, never to the frozen transcript prop.
+	const lastGood = useRef<CartCardData>(data);
 
+	// The transcript froze this card's numbers at tool time; the cart
+	// kept living. Adopt the durable snapshot so a reload, or an older
+	// copy of the same cart, converges on the truth.
+	useEffect(() => {
+		let alive = true;
+		hydrate(data.cartUuid).then((durable) => {
+			if (!alive || !durable) return;
+			setStatus(durable.status ?? "open");
+			setCart((current) => {
+				const next = {
+					...current,
+					...(durable.items ? { items: durable.items } : {}),
+					...(durable.quote !== undefined ? { quote: durable.quote } : {}),
+					...(durable.tipCents !== undefined
+						? { tipCents: durable.tipCents }
+						: {}),
+					...(durable.fulfillment ? { fulfillment: durable.fulfillment } : {}),
+				};
+				lastGood.current = next;
+				return next;
+			});
+		});
+		return () => {
+			alive = false;
+		};
+	}, [data.cartUuid, hydrate]);
+
+	const sealed = status === "placing" || status === "placed";
+	const frozen = busy || sealed;
 	const subtotal = cart.quote?.ladder.find(
 		(line) => line.chargeId === "SUBTOTAL",
 	)?.cents;
@@ -74,17 +117,21 @@ export function CartCard({
 		try {
 			const result = await exec(cart.cartUuid, op);
 			if (result.cart) {
-				setCart((current) => ({
-					...current,
-					...(result.cart as Partial<CartCardData>),
-					storeName:
-						(result.cart as Partial<CartCardData>).storeName ??
-						current.storeName,
-				}));
+				setCart((current) => {
+					const next = {
+						...current,
+						...(result.cart as Partial<CartCardData>),
+						storeName:
+							(result.cart as Partial<CartCardData>).storeName ??
+							current.storeName,
+					};
+					lastGood.current = next;
+					return next;
+				});
 			}
 		} catch {
 			setFailed("that edit did not go through; prices unchanged");
-			setCart(data);
+			setCart(lastGood.current);
 		} finally {
 			setBusy(false);
 		}
@@ -116,9 +163,13 @@ export function CartCard({
 						{cart.storeName}
 					</CardTitle>
 					<p className="font-mono text-xs text-muted-foreground">
-						{cart.quote?.asapAvailable
-							? (cart.quote?.etaRange ?? "")
-							: "closed right now"}
+						{sealed
+							? status === "placed"
+								? "ordered"
+								: "placing the order"
+							: cart.quote?.asapAvailable
+								? (cart.quote?.etaRange ?? "")
+								: "closed right now"}
 					</p>
 				</div>
 				<ButtonGroup>
@@ -126,7 +177,7 @@ export function CartCard({
 						<Button
 							key={mode}
 							variant="outline"
-							disabled={busy}
+							disabled={frozen}
 							aria-pressed={cart.fulfillment === mode}
 							className={cn(
 								"h-7 px-2.5 text-xs capitalize",
@@ -152,7 +203,7 @@ export function CartCard({
 						<CartLine
 							key={line.lineId}
 							line={line}
-							busy={busy}
+							busy={frozen}
 							onQuantity={(lineId, quantity) =>
 								touch({ kind: "set-quantity", lineId, quantity })
 							}
@@ -172,7 +223,7 @@ export function CartCard({
 								<Button
 									key={percent}
 									variant="outline"
-									disabled={busy || !subtotal}
+									disabled={frozen || !subtotal}
 									aria-pressed={selected}
 									className={cn(
 										"h-7 px-2.5 font-mono text-xs",

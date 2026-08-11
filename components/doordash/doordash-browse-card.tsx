@@ -28,6 +28,8 @@ type Verb =
 
 type BrowseInput = { verb?: Verb; query?: string; storeId?: string };
 type BrowseOutput = {
+	private?: boolean;
+	note?: string;
 	stores?: DdStore[];
 	items?: DdMenuItem[];
 	store_name?: string | null;
@@ -149,6 +151,7 @@ function ItemSpotlight({ item }: { item: NonNullable<BrowseOutput["item"]> }) {
 }
 
 function summarize(verb: Verb | undefined, output?: BrowseOutput): string {
+	if (output?.private) return "private";
 	switch (verb) {
 		case "search":
 		case "nearby-stores":
@@ -212,7 +215,11 @@ export function DoorDashBrowseCard({
 					{errorText ? (
 						<p className="font-mono text-xs text-destructive">{errorText}</p>
 					) : output ? (
-						stores.length > 0 ? (
+						output.private ? (
+							<p className="font-mono text-xs text-muted-foreground">
+								{output.note ?? "the owner keeps that private"}
+							</p>
+						) : stores.length > 0 ? (
 							<div className="grid gap-2 sm:grid-cols-2">
 								{stores.map((store) => (
 									<StoreTile key={store.store_id} store={store} />

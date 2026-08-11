@@ -45,7 +45,9 @@ could be removed without the product collapsing, the design is wrong.
   `lib/`. Agent definitions only wire pieces together. No kitchen-sink files.
 - Database changes go through the tooling, never by hand: edit `lib/db/schema.ts`,
   then `pnpm db:generate --name <change>`, then `pnpm db:migrate`. Migration SQL is
-  generated output; handwriting or editing it is a defect.
+  generated output; handwriting or editing it is a defect. The one sanctioned
+  exception is a data backfill, which rides `pnpm db:generate --custom`, drizzle's
+  own mechanism for exactly that.
 - `scripts/` holds only load-bearing, public-grade harnesses.
 
 ## UI standards

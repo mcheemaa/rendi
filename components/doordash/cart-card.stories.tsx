@@ -3,7 +3,7 @@ import { expect, fn, userEvent, waitFor, within } from "storybook/test";
 import { cartShowFixture, previewFixture } from "@/lib/rendi/doordash.fixtures";
 import { normalizeCartLines, normalizeQuote } from "@/lib/rendi/doordash-cart";
 import { ddCartEnvelope, ddPreviewResult } from "@/lib/rendi/doordash-schemas";
-import { CartCard, type CartCardData } from "./cart-card";
+import { CartCard, type CartCardData, type DurableCart } from "./cart-card";
 
 const lines = normalizeCartLines(ddCartEnvelope.parse(cartShowFixture).cart);
 const quote = normalizeQuote(ddPreviewResult.parse(previewFixture));
@@ -25,6 +25,7 @@ const meta = {
 	args: {
 		data: building,
 		exec: fn(async () => ({ ok: true, cart: null })),
+		hydrate: fn(async (): Promise<DurableCart | null> => null),
 	},
 	decorators: [
 		(Story) => (
@@ -95,5 +96,68 @@ export const Empty: Story = {
 	play: async ({ canvasElement }) => {
 		const canvas = within(canvasElement);
 		await expect(canvas.getByText("The cart is empty.")).toBeVisible();
+	},
+};
+
+export const Sealed: Story = {
+	args: {
+		hydrate: fn(async () => ({ status: "placing" })),
+	},
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement);
+		// The durable snapshot says the order is being placed: every
+		// control freezes and the header says why.
+		await expect(await canvas.findByText("placing the order")).toBeVisible();
+		await waitFor(() =>
+			expect(
+				canvas.getByRole("button", { name: "One more Pad See Ew" }),
+			).toBeDisabled(),
+		);
+		await expect(canvas.getByRole("button", { name: "10%" })).toBeDisabled();
+	},
+};
+
+export const HydratesFromDurableTruth: Story = {
+	args: {
+		hydrate: fn(async () => ({ status: "open", tipCents: 880 })),
+	},
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement);
+		// The transcript froze a 10 percent tip; the durable cart moved on
+		// to 20 percent, and the card adopts the truth on mount.
+		await waitFor(async () =>
+			expect(canvas.getByRole("button", { name: "20%" })).toHaveAttribute(
+				"aria-pressed",
+				"true",
+			),
+		);
+	},
+};
+
+export const FailedEditKeepsDurableTruth: Story = {
+	args: {
+		hydrate: fn(async () => ({ status: "open", tipCents: 880 })),
+		exec: fn(async () => {
+			throw new Error("edit failed");
+		}),
+	},
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement);
+		await waitFor(async () =>
+			expect(canvas.getByRole("button", { name: "20%" })).toHaveAttribute(
+				"aria-pressed",
+				"true",
+			),
+		);
+		await userEvent.click(canvas.getByRole("button", { name: "15%" }));
+		await expect(
+			await canvas.findByText("that edit did not go through; prices unchanged"),
+		).toBeVisible();
+		// The rollback lands on the hydrated truth, never the frozen
+		// transcript numbers.
+		await expect(canvas.getByRole("button", { name: "20%" })).toHaveAttribute(
+			"aria-pressed",
+			"true",
+		);
 	},
 };

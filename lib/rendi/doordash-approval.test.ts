@@ -3,12 +3,16 @@ import type { drizzle } from "drizzle-orm/pglite";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ddApprovals, ddOrders } from "../db/schema.ts";
 import {
+	approvalToken,
 	checkCaps,
 	consumeApproval,
 	createApproval,
 	hashCart,
+	maxOrderCents,
+	reserveOrderSlot,
 	totalWithTip,
 	verifyApproval,
+	verifyApprovalToken,
 	voidApproval,
 } from "./doordash-approval.ts";
 import type { DdCartLine, DdQuoteSnapshot } from "./doordash-cart.ts";
@@ -201,12 +205,80 @@ describe("the approval lifecycle", () => {
 		});
 	});
 
-	it("void never rewinds a consumed approval", async () => {
+	it("void never rewinds a consumed approval, and says so", async () => {
 		const approval = await mintApproval();
-		await verifyApproval(approval.id, approval.code);
-		await consumeApproval(approval.id);
-		await voidApproval(approval.id);
-		expect((await row(approval.id)).voidedAt).toBeNull();
+		expect(await voidApproval(approval.id)).toBe(true);
+		const second = await mintApproval();
+		await verifyApproval(second.id, second.code);
+		await consumeApproval(second.id);
+		expect(await voidApproval(second.id)).toBe(false);
+		expect((await row(second.id)).voidedAt).toBeNull();
+	});
+});
+
+describe("approvalToken", () => {
+	it("binds to the approval id and never to guesswork", () => {
+		const original = process.env.RENDER_TOKEN_SECRET;
+		process.env.RENDER_TOKEN_SECRET = "test-secret";
+		try {
+			const token = approvalToken(41);
+			expect(token).toMatch(/^[0-9a-f]{32}$/);
+			expect(approvalToken(41)).toBe(token);
+			expect(verifyApprovalToken(41, token)).toBe(true);
+			expect(verifyApprovalToken(42, token)).toBe(false);
+			expect(verifyApprovalToken(41, "0".repeat(32))).toBe(false);
+			expect(verifyApprovalToken(41, undefined)).toBe(false);
+		} finally {
+			if (original === undefined) delete process.env.RENDER_TOKEN_SECRET;
+			else process.env.RENDER_TOKEN_SECRET = original;
+		}
+	});
+});
+
+describe("cap parsing", () => {
+	it("blank and junk env values mean the defaults", () => {
+		const original = process.env.DD_MAX_ORDER_CENTS;
+		try {
+			process.env.DD_MAX_ORDER_CENTS = "";
+			expect(maxOrderCents()).toBe(10_000);
+			process.env.DD_MAX_ORDER_CENTS = "junk";
+			expect(maxOrderCents()).toBe(10_000);
+			process.env.DD_MAX_ORDER_CENTS = "2500";
+			expect(maxOrderCents()).toBe(2500);
+		} finally {
+			if (original === undefined) delete process.env.DD_MAX_ORDER_CENTS;
+			else process.env.DD_MAX_ORDER_CENTS = original;
+		}
+	});
+});
+
+describe("reserveOrderSlot", () => {
+	it("the last daily slot cannot be spent twice", async () => {
+		const original = process.env.DD_MAX_ORDERS_PER_DAY;
+		process.env.DD_MAX_ORDERS_PER_DAY = "1";
+		try {
+			const first = await mintApproval({ cartUuid: "cart-r1" });
+			const second = await mintApproval({ cartUuid: "cart-r2" });
+			const win = await reserveOrderSlot({
+				approvalId: first.id,
+				conversationId: "conv-1",
+				cartUuid: "cart-r1",
+				storeName: "Toomie's Thai",
+				totalCents: 3317,
+			});
+			expect("orderId" in win).toBe(true);
+			const lose = await reserveOrderSlot({
+				approvalId: second.id,
+				conversationId: "conv-1",
+				cartUuid: "cart-r2",
+				storeName: "Toomie's Thai",
+				totalCents: 3317,
+			});
+			expect("denied" in lose && lose.denied).toContain("daily cap");
+		} finally {
+			if (original === undefined) delete process.env.DD_MAX_ORDERS_PER_DAY;
+			else process.env.DD_MAX_ORDERS_PER_DAY = original;
+		}
 	});
 });
 
