@@ -20,6 +20,7 @@ export default defineConfig({
 				extends: true,
 				test: {
 					name: "unit",
+					setupFiles: ["./vitest.setup.unit.ts"],
 					include: [
 						"app/**/*.test.ts",
 						"components/**/*.test.ts",
