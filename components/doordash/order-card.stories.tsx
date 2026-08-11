@@ -84,6 +84,38 @@ export const Held: Story = {
 	},
 };
 
+export const Unconfirmed: Story = {
+	args: {
+		output: {
+			outcome: "unknown",
+			storeName: "Toomie's Thai",
+			note: "the submission may or may not have reached DoorDash; never resubmit and never check out elsewhere until order history answers. Check the order history in a minute and reconcile honestly.",
+		},
+	},
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement);
+		await expect(canvas.getByText("The order is unconfirmed")).toBeVisible();
+	},
+};
+
+export const NotFound: Story = {
+	args: {
+		output: {
+			outcome: "not_found",
+			orderUuid: "abcdef12-3456-7890-abcd-ef1234567890",
+			storeName: "Toomie's Thai",
+		},
+	},
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement);
+		await expect(
+			canvas.getByText(
+				"DoorDash cannot find this order; check the app before doing anything else",
+			),
+		).toBeVisible();
+	},
+};
+
 export const Voided: Story = {
 	args: {
 		output: {

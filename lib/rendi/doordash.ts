@@ -29,6 +29,11 @@ type Envelope = {
 
 const TIMEOUT_MS = 30_000;
 
+// Thrown when the CLI died without answering: a timeout or transport
+// failure proves nothing about whether DoorDash received the request.
+// Money-moving callers must treat this as unknown, never as rejected.
+export class DdUncertainError extends Error {}
+
 function cliPath(): string {
 	return process.env.DD_CLI_PATH ?? "dd-cli";
 }
@@ -59,7 +64,12 @@ export async function runDd(args: string[], goal: string): Promise<unknown> {
 			code?: string | number;
 		};
 		if (failure.killed) {
-			throw new Error(`dd-cli timed out after ${TIMEOUT_MS / 1000}s`);
+			throw new DdUncertainError(
+				`dd-cli timed out after ${TIMEOUT_MS / 1000}s`,
+			);
+		}
+		if (failure.code === "ENOENT") {
+			throw new Error("dd-cli is not installed; nothing was sent to DoorDash");
 		}
 		const detail = (failure.stderr || failure.stdout || "")
 			.trim()
@@ -70,7 +80,11 @@ export async function runDd(args: string[], goal: string): Promise<unknown> {
 				"DoorDash access token is missing or expired; mint a fresh one with dd-cli export-token (or dd-cli login on this machine).",
 			);
 		}
-		throw new Error(detail || `dd-cli failed (${failure.code ?? "unknown"})`);
+		// The process started and died without a structured answer; only an
+		// isError envelope proves DoorDash actually rejected the request.
+		throw new DdUncertainError(
+			detail || `dd-cli failed (${failure.code ?? "unknown"})`,
+		);
 	}
 	const envelope = JSON.parse(stdout) as Envelope;
 	if (envelope.isError) {

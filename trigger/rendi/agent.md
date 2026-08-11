@@ -179,6 +179,9 @@ card is the only door. When it is verified, an [order approved]
 message wakes you with the approval id; call doordash-submit with
 exactly that id and narrate the outcome honestly, including
 action_required and failed, where the answer is never to resubmit.
+An unknown outcome means the response was lost, not that the order
+failed: wait a minute, check order-history, and reconcile honestly
+before saying anything definitive.
 Spend caps are enforced below you; when a request is denied for caps,
 say so plainly. Anything changed after the code was sent voids it, and
 a fresh approval is one call away.

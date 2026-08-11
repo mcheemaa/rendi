@@ -31,6 +31,29 @@ async function recordOutcome(
 		.where(eq(ddOrders.id, orderId));
 }
 
+// After an uncertain submit, order history is the truth: an order at
+// this store that our ledger has never seen is the one whose response
+// was lost. Returns its uuid, or null when nothing landed.
+async function reconcileFromHistory(
+	storeId: string,
+	goal: string,
+): Promise<string | null> {
+	const history = await dd
+		.orderHistory({ max: 5, days: 1 }, goal)
+		.catch(() => null);
+	if (!history) return null;
+	const known = new Set(
+		(await getDb().select({ orderUuid: ddOrders.orderUuid }).from(ddOrders))
+			.map((row) => row.orderUuid)
+			.filter(Boolean),
+	);
+	const found = history.orders.find(
+		(order) =>
+			String(order.store_id ?? "") === storeId && !known.has(order.order_uuid),
+	);
+	return found?.order_uuid ?? null;
+}
+
 // The finalizer, with zero degrees of freedom: everything about the
 // order is frozen in the approval row the owner's code verified. The
 // tool consumes the row once; a re-fired turn reads the recorded
@@ -65,6 +88,18 @@ export const doordashSubmit = tool({
 		const approval = consumed.consumed;
 		const snapshot = await getCartSnapshot(approval.cartUuid);
 		if (!snapshot) return { refused: "the cart is gone" };
+
+		// The tip lives in our snapshot, not at DoorDash, so the cart hash
+		// cannot see it move; compare it directly. The email promised any
+		// change voids the code, and the tip is a change.
+		if (snapshot.tipCents !== approval.tipCents) {
+			await voidApproval(approvalId);
+			await setCartStatus(approval.cartUuid, "voided");
+			return {
+				voided:
+					"the tip changed after the code was sent; request a fresh approval",
+			};
+		}
 
 		// Revalidate against live truth: the owner approved a frozen cart,
 		// so any drift since the email voids the approval, honestly.
@@ -118,16 +153,36 @@ export const doordashSubmit = tool({
 			);
 			orderUuid = submitted.order_uuid ?? null;
 		} catch (error) {
-			await recordOutcome(orderRow.id, {
-				status: "failed",
-				errorMessage: error instanceof Error ? error.message : "submit failed",
-			});
-			await setCartStatus(approval.cartUuid, "failed");
-			return {
-				outcome: "failed",
-				error: error instanceof Error ? error.message : "submit failed",
-				note: "never resubmit; the browser checkout is the fallback",
-			};
+			// A lost response is not a rejection: DoorDash may have accepted
+			// and charged before the transport died. Only a structured error
+			// from the CLI proves the order was refused.
+			if (error instanceof dd.DdUncertainError) {
+				orderUuid = await reconcileFromHistory(snapshot.storeId, goal);
+				if (!orderUuid) {
+					await recordOutcome(orderRow.id, {
+						status: "unknown",
+						errorMessage: error.message,
+					});
+					return {
+						outcome: "unknown",
+						storeName: snapshot.storeName,
+						error: error.message,
+						note: "the submission may or may not have reached DoorDash; never resubmit and never check out elsewhere until order history answers. Check the order history in a minute and reconcile honestly.",
+					};
+				}
+			} else {
+				await recordOutcome(orderRow.id, {
+					status: "failed",
+					errorMessage:
+						error instanceof Error ? error.message : "submit failed",
+				});
+				await setCartStatus(approval.cartUuid, "failed");
+				return {
+					outcome: "failed",
+					error: error instanceof Error ? error.message : "submit failed",
+					note: "never resubmit; the browser checkout is the fallback",
+				};
+			}
 		}
 		await recordOutcome(orderRow.id, { orderUuid });
 

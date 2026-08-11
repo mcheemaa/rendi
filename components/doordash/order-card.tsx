@@ -95,6 +95,26 @@ function face(output: OrderOutput): {
 					...(output.note ? [output.note] : []),
 				],
 			};
+		case "unknown":
+			return {
+				title: "The order is unconfirmed",
+				summary: "unconfirmed",
+				tone: "bad",
+				lines: [
+					"the submission may or may not have reached DoorDash",
+					...(output.note ? [output.note] : []),
+				],
+			};
+		case "not_found":
+			return {
+				title: "The order is unaccounted for",
+				summary: "not found",
+				tone: "bad",
+				lines: [
+					"DoorDash cannot find this order; check the app before doing anything else",
+					...(output.error ? [output.error] : []),
+				],
+			};
 		default:
 			return {
 				title: "Placed the order",
