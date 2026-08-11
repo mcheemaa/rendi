@@ -14,9 +14,7 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {
 	play: async ({ canvasElement }) => {
 		const canvas = within(canvasElement);
-		await expect(
-			canvas.getByText(/archived conversation from Rendi/),
-		).toBeVisible();
+		await expect(canvas.getByText(/kept as a live gallery/)).toBeVisible();
 		await expect(
 			canvas.getByRole("link", { name: "New conversation" }),
 		).toHaveAttribute("href", "/");

@@ -19,6 +19,10 @@ export const conversations = pgTable("conversations", {
 	publicAccessToken: text("public_access_token"),
 	lastEventId: text("last_event_id"),
 	turns: integer("turns").notNull().default(0),
+	// Birth environment (from the Trigger key prefix). The 'prod' default
+	// is load-bearing: worker versions that predate this column leave it
+	// unset, and those sessions only ever run in prod.
+	triggerEnv: text("trigger_env").notNull().default("prod"),
 	createdAt: timestamp("created_at", { withTimezone: true })
 		.notNull()
 		.defaultNow(),

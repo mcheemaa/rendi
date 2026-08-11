@@ -57,6 +57,13 @@
       "when": 1784741129586,
       "tag": "0007_emails",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1786424565324,
+      "tag": "0008_conversation-trigger-env",
+      "breakpoints": true
     }
   ]
 }

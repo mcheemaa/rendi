@@ -20,6 +20,7 @@ export default async function ConversationPage({
 	const [transcript, canvas] = conversation
 		? await Promise.all([getTranscript(id), loadCanvas(id)])
 		: [[], undefined];
+	const archived = conversation ? isArchived(conversation.triggerEnv) : false;
 	return (
 		<>
 			<h1 className="sr-only">{conversation?.title ?? "New conversation"}</h1>
@@ -31,9 +32,11 @@ export default async function ConversationPage({
 				chatId={id}
 				initialMessages={transcript}
 				initialCanvas={canvas ?? null}
-				archived={conversation ? isArchived(conversation.createdAt) : false}
+				archived={archived}
 				session={
-					conversation?.publicAccessToken
+					// A gallery never attaches to its session: the other
+					// environment's token cannot resume here, only 401.
+					conversation?.publicAccessToken && !archived
 						? {
 								publicAccessToken: conversation.publicAccessToken,
 								lastEventId: conversation.lastEventId ?? undefined,

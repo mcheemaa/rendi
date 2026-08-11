@@ -8,6 +8,7 @@ import { and, eq, inArray, sql } from "drizzle-orm";
 import type { PgUpdateSetSource } from "drizzle-orm/pg-core";
 import { getDb } from "../../db/index.ts";
 import { conversations, messages } from "../../db/schema.ts";
+import { triggerEnv } from "../trigger-env.ts";
 
 type Tx = Parameters<Parameters<ReturnType<typeof getDb>["transaction"]>[0]>[0];
 
@@ -26,7 +27,7 @@ async function reconcile(
 ): Promise<void> {
 	await tx
 		.insert(conversations)
-		.values({ id: conversationId })
+		.values({ id: conversationId, triggerEnv: triggerEnv() })
 		.onConflictDoUpdate({
 			target: conversations.id,
 			set: { updatedAt: sql`now()` },
@@ -136,6 +137,7 @@ export async function persistChatStart(
 		.insert(conversations)
 		.values({
 			id: event.chatId,
+			triggerEnv: triggerEnv(),
 			...(event.chatAccessToken
 				? { publicAccessToken: event.chatAccessToken }
 				: {}),

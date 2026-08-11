@@ -1,9 +1,17 @@
 import { and, desc, eq, ilike, lt, or } from "drizzle-orm";
 import { cache } from "react";
+import { triggerEnv } from "../rendi/trigger-env.ts";
 import { getDb } from "./index.ts";
 import { conversations, messages } from "./schema.ts";
 
 export const CONVERSATION_PAGE = 25;
+
+// Prod lists only prod-born conversations (dev experiments would render
+// as dead rows there); dev is the workbench and lists everything.
+function envScope() {
+	const env = triggerEnv();
+	return env === "prod" ? eq(conversations.triggerEnv, env) : undefined;
+}
 
 export type ConversationCursor = { updatedAt: string; id: string };
 
@@ -26,15 +34,18 @@ export async function pageConversations(
 		})
 		.from(conversations)
 		.where(
-			before
-				? or(
-						lt(conversations.updatedAt, new Date(before.updatedAt)),
-						and(
-							eq(conversations.updatedAt, new Date(before.updatedAt)),
-							lt(conversations.id, before.id),
-						),
-					)
-				: undefined,
+			and(
+				envScope(),
+				before
+					? or(
+							lt(conversations.updatedAt, new Date(before.updatedAt)),
+							and(
+								eq(conversations.updatedAt, new Date(before.updatedAt)),
+								lt(conversations.id, before.id),
+							),
+						)
+					: undefined,
+			),
 		)
 		.orderBy(desc(conversations.updatedAt), desc(conversations.id))
 		.limit(CONVERSATION_PAGE + 1);
@@ -57,7 +68,7 @@ export async function searchConversations(query: string, limit = 15) {
 			updatedAt: conversations.updatedAt,
 		})
 		.from(conversations)
-		.where(ilike(conversations.title, `%${query}%`))
+		.where(and(envScope(), ilike(conversations.title, `%${query}%`)))
 		.orderBy(desc(conversations.updatedAt), desc(conversations.id))
 		.limit(limit);
 }
