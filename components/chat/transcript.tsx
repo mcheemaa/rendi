@@ -23,6 +23,7 @@ import { PulseCard } from "@/components/chat/pulse-card";
 import { QueryDataCard } from "@/components/chat/query-data-card";
 import { ScreenshotCard } from "@/components/chat/screenshot-card";
 import { ShareLinkCard } from "@/components/chat/share-link-card";
+import { DoorDashBrowseCard } from "@/components/doordash/doordash-browse-card";
 import { persistedInstrumentSpec } from "@/lib/rendi/instrument";
 
 export function Transcript({
@@ -216,6 +217,34 @@ function Parts({
 							output={
 								part.state === "output-available"
 									? (part.output as Parameters<typeof DatasetCard>[0]["output"])
+									: undefined
+							}
+							errorText={
+								part.state === "output-error" ? part.errorText : undefined
+							}
+						/>
+					);
+				}
+				if (part.type === "tool-doordash-browse") {
+					return (
+						<DoorDashBrowseCard
+							key={key}
+							interrupted={interrupted}
+							state={part.state}
+							input={
+								part.state === "input-available" ||
+								part.state === "output-available" ||
+								part.state === "output-error"
+									? (part.input as Parameters<
+											typeof DoorDashBrowseCard
+										>[0]["input"])
+									: undefined
+							}
+							output={
+								part.state === "output-available"
+									? (part.output as Parameters<
+											typeof DoorDashBrowseCard
+										>[0]["output"])
 									: undefined
 							}
 							errorText={
