@@ -121,6 +121,23 @@ export async function defaultCoords(
 	return coordsCache.value;
 }
 
+// dd-cli is built for a renderer with widgets; headless consumers get
+// the widget's stage directions as message text ("the widget is showing
+// an address picker..."). Those instructions are never addressed to us,
+// so translate them into the honest fact before anyone repeats them.
+function stripWidgetSpeak<
+	T extends { message?: string | null; needs_address?: boolean },
+>(result: T): T {
+	if (result.needs_address || /widget/i.test(result.message ?? "")) {
+		return {
+			...result,
+			message:
+				"DoorDash wants a delivery-address choice here, and its address picker only exists in its own app. The account's saved addresses are the only delivery targets; search near one of them instead.",
+		};
+	}
+	return result;
+}
+
 export async function search(
 	input: { query: string; lat?: number; lng?: number; limit?: number },
 	goal: string,
@@ -133,7 +150,7 @@ export async function search(
 	if (coords)
 		args.push("--lat", String(coords.lat), "--lng", String(coords.lng));
 	if (input.limit) args.push("--limit", String(input.limit));
-	return parsed(ddSearchResult, args, goal);
+	return stripWidgetSpeak(await parsed(ddSearchResult, args, goal));
 }
 
 export async function findNearbyStores(
@@ -146,7 +163,7 @@ export async function findNearbyStores(
 	if (input.lat != null && input.lng != null) {
 		args.push("--lat", String(input.lat), "--lng", String(input.lng));
 	}
-	return parsed(ddSearchResult, args, goal);
+	return stripWidgetSpeak(await parsed(ddSearchResult, args, goal));
 }
 
 export async function storeDetails(storeId: string, goal: string) {
