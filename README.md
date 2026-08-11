@@ -87,6 +87,30 @@ what the tools do. Strip the analytics tools and wire your own: the inbox patter
 the heartbeats, the self-review, and the zero-cost standby all come with the
 harness. We made it an analyst. You can make it anything.
 
+## The second skin
+
+The harness claim needed proof, so we gave the same agent DoorDash. Through the
+official [DoorDash CLI](https://github.com/doordash-oss/doordash-cli), on a
+personal account, it browses restaurants, reads menus with the full modifier
+tree, and builds a cart that renders as an instrument like any chart: steppers,
+tip presets, delivery or pickup, the honest fee ladder, yours to touch without
+the model in the loop.
+
+Placing the order is a two-key ritual. The agent holds every tool including
+submit, and it still cannot spend a cent alone: asking for approval freezes the
+cart into a hash and emails a six-digit code to the owner's inbox and nowhere
+else. The code is typed into the order card, never into the chat. The approval
+is single-use, dies in fifteen minutes or after five wrong guesses, and any
+change to the cart after the email, one more taco, a different tip, voids it.
+Spend caps live below the agent. Safety here is structural, not a system prompt.
+
+No new infrastructure appeared for any of this. The cards ride the same
+transcript, the code entry wakes the agent through the same session inbox that
+dataset loads use, and the whole capability is a few tool files plus
+configuration: your own CLI token, your own approval inbox, your own caps
+([docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)). Delete four lines from the agent
+file and it never existed. That is what "skin" means.
+
 ## How it compares
 
 - BI tools (Tableau, Metabase) give you dashboards someone authored for you. Rendi

@@ -1,6 +1,6 @@
 {
 	"name": "rendi",
-	"version": "0.1.0",
+	"version": "0.2.0",
 	"private": true,
 	"description": "Questions become interfaces: a chat agent whose answers are live, steerable instruments over ClickHouse, on Trigger.dev durable sessions.",
 	"license": "MIT",
