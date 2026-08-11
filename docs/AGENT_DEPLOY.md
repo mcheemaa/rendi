@@ -43,6 +43,13 @@ Optional, ask which the user wants:
       limits and private repositories.
 - [ ] `ACCESS_CODES` plus `ACCESS_TOKEN_SECRET` if the deployed instance should sit
       behind an access-code gate.
+- [ ] DoorDash ordering, only if the user has dd-cli access (it is waitlisted) and
+      wants it: `RENDI_OWNER_EMAIL` (the approval inbox; Resend becomes required),
+      `DD_CLI_ACCESS_TOKEN` for production (the user runs `dd-cli export-token`
+      themselves; never ask them to paste it into chat), and optionally
+      `DD_MAX_ORDER_CENTS`, `DD_MAX_ORDERS_PER_DAY`, `DD_HIDE_PERSONAL=1`. If the
+      user does not want ordering, delete the four `doordash-*` lines from
+      `trigger/rendi/agent.md`; that file is then the third permitted edit.
 
 ## Stage 1: local bring-up
 
@@ -107,6 +114,13 @@ window.
 
 **Check:** the shared board renders without cookies and its charts execute live.
 Report the production URL, the share link, and anything skipped back to the user.
+
+If DoorDash is configured, prove the approval machine without spending: ask the
+agent to build a small cart and request approval. **Check:** a code email reaches
+`RENDI_OWNER_EMAIL` and the order card grows a code input. Do not enter the code
+and do not place an order unless the user explicitly asks for a real one; a wrong
+code (expect "wrong code, 4 tries left") plus cancel proves the machinery and
+costs nothing.
 
 ## When something fails
 

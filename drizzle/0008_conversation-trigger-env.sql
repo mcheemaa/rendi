@@ -1,0 +1,1 @@
+ALTER TABLE "conversations" ADD COLUMN "trigger_env" text DEFAULT 'prod' NOT NULL;

@@ -16,11 +16,10 @@ export function ArchiveNotice() {
 					/>
 					<div className="min-w-0">
 						<p className="text-sm">
-							An archived conversation from Rendi&rsquo;s build days, kept as a
-							gallery.
+							This conversation is kept as a live gallery.
 						</p>
 						<p className="mt-0.5 text-[13px] text-muted-foreground">
-							Everything renders live. To talk with Rendi, start a new
+							Everything still renders. To talk with Rendi, start a new
 							conversation.
 						</p>
 					</div>
