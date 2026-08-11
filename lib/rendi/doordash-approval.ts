@@ -1,4 +1,9 @@
-import { createHash, randomInt, timingSafeEqual } from "node:crypto";
+import {
+	createHash,
+	createHmac,
+	randomInt,
+	timingSafeEqual,
+} from "node:crypto";
 import { and, count, eq, gt, isNull, sql } from "drizzle-orm";
 import { getDb } from "../db/index.ts";
 import { type DdApprovalRow, ddApprovals, ddOrders } from "../db/schema.ts";
@@ -70,6 +75,30 @@ export function totalWithTip(
 
 function hashCode(code: string, approvalId: number): string {
 	return createHash("sha256").update(`${code}:${approvalId}`).digest("hex");
+}
+
+// A capability, not a code: it rides in the tool output so only this
+// conversation's card can speak to the approval routes, keeping
+// sequential ids from being another gate holder's lever. The inbox
+// code remains the only key that moves money.
+export function approvalToken(approvalId: number): string {
+	const secret = process.env.RENDER_TOKEN_SECRET;
+	if (!secret) throw new Error("RENDER_TOKEN_SECRET is not set");
+	return createHmac("sha256", secret)
+		.update(`dd-approval:${approvalId}`)
+		.digest("hex")
+		.slice(0, 32);
+}
+
+export function verifyApprovalToken(
+	approvalId: number,
+	token: string | null | undefined,
+): boolean {
+	const expected = Buffer.from(approvalToken(approvalId));
+	const provided = Buffer.from(token ?? "");
+	return (
+		expected.length === provided.length && timingSafeEqual(expected, provided)
+	);
 }
 
 export type ApprovalDenied = { denied: string };

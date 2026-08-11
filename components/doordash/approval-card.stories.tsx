@@ -4,6 +4,7 @@ import { ApprovalCard } from "./approval-card";
 
 const awaiting = {
 	approvalId: 41,
+	token: "test-token",
 	expiresAt: new Date(Date.now() + 14 * 60 * 1000).toISOString(),
 	totalCents: 3317,
 	tipCents: 440,
@@ -19,9 +20,11 @@ const meta = {
 	args: {
 		state: "output-available",
 		output: awaiting,
-		verify: fn(async (_id: number, _code: string) => ({ ok: true })),
-		cancel: fn(async (_id: number) => {}),
-		fetchStatus: fn(async (_id: number) => "waiting"),
+		verify: fn(async (_id: number, _code: string, _token: string) => ({
+			ok: true,
+		})),
+		cancel: fn(async (_id: number, _token: string) => {}),
+		fetchStatus: fn(async (_id: number, _token: string) => "waiting"),
 	},
 	decorators: [
 		(Story) => (
@@ -43,7 +46,9 @@ export const CodeEntry: Story = {
 		await expect(approve).toBeDisabled();
 		await userEvent.type(input, "482913");
 		await userEvent.click(approve);
-		await waitFor(() => expect(args.verify).toHaveBeenCalledWith(41, "482913"));
+		await waitFor(() =>
+			expect(args.verify).toHaveBeenCalledWith(41, "482913", "test-token"),
+		);
 		await expect(
 			canvas.getByText("approved; rendi is placing the order"),
 		).toBeVisible();
@@ -52,7 +57,7 @@ export const CodeEntry: Story = {
 
 export const WrongCode: Story = {
 	args: {
-		verify: fn(async (_id: number, _code: string) => ({
+		verify: fn(async (_id: number, _code: string, _token: string) => ({
 			ok: false,
 			reason: "wrong",
 			attemptsLeft: 4,
@@ -75,7 +80,9 @@ export const Cancelled: Story = {
 	play: async ({ canvasElement, args }) => {
 		const canvas = within(canvasElement);
 		await userEvent.click(canvas.getByRole("button", { name: "Cancel" }));
-		await waitFor(() => expect(args.cancel).toHaveBeenCalledWith(41));
+		await waitFor(() =>
+			expect(args.cancel).toHaveBeenCalledWith(41, "test-token"),
+		);
 		await expect(
 			canvas.getByText("approval cancelled; the cart is open again"),
 		).toBeVisible();
@@ -83,7 +90,7 @@ export const Cancelled: Story = {
 };
 
 export const AlreadyApproved: Story = {
-	args: { fetchStatus: fn(async (_id: number) => "consumed") },
+	args: { fetchStatus: fn(async (_id: number, _token: string) => "consumed") },
 	play: async ({ canvasElement }) => {
 		const canvas = within(canvasElement);
 		// A reload after the code was entered never re-offers the input.

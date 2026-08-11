@@ -4,6 +4,7 @@ import { z } from "zod";
 import { getDb } from "@/lib/db/index";
 import { conversations } from "@/lib/db/schema";
 import {
+	approvalToken,
 	checkCaps,
 	createApproval,
 	hashCart,
@@ -106,6 +107,7 @@ export const doordashRequestApproval = tool({
 		await setCartStatus(cartUuid, "awaiting_code");
 		return {
 			approvalId: approval.id,
+			token: approvalToken(approval.id),
 			expiresAt: approval.expiresAt.toISOString(),
 			totalCents,
 			tipCents: priced.tipCents,

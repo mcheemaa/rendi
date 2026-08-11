@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 
 type ApprovalOutput = {
 	approvalId?: number;
+	token?: string;
 	expiresAt?: string;
 	totalCents?: number;
 	storeName?: string;
@@ -19,6 +20,7 @@ type ApprovalOutput = {
 
 type VerifyResponse = {
 	ok?: boolean;
+	woke?: boolean;
 	reason?: string;
 	attemptsLeft?: number;
 };
@@ -26,23 +28,28 @@ type VerifyResponse = {
 async function postCode(
 	approvalId: number,
 	code: string,
+	token: string,
 ): Promise<VerifyResponse> {
 	const response = await fetch(`/api/doordash/approvals/${approvalId}/verify`, {
 		method: "POST",
 		headers: { "content-type": "application/json" },
-		body: JSON.stringify({ code }),
+		body: JSON.stringify({ code, token }),
 	});
 	return response.json();
 }
 
-async function postCancel(approvalId: number): Promise<void> {
+async function postCancel(approvalId: number, token: string): Promise<void> {
 	await fetch(`/api/doordash/approvals/${approvalId}/cancel`, {
 		method: "POST",
+		headers: { "content-type": "application/json" },
+		body: JSON.stringify({ token }),
 	});
 }
 
-async function getStatus(approvalId: number): Promise<string> {
-	const response = await fetch(`/api/doordash/approvals/${approvalId}`);
+async function getStatus(approvalId: number, token: string): Promise<string> {
+	const response = await fetch(
+		`/api/doordash/approvals/${approvalId}?token=${encodeURIComponent(token)}`,
+	);
 	if (!response.ok) return "voided";
 	const body = (await response.json()) as { status?: string };
 	return body.status ?? "waiting";
@@ -90,12 +97,13 @@ export function ApprovalCard({
 	const [seconds, setSeconds] = useState<number | null>(null);
 
 	const approvalId = output?.approvalId;
+	const token = output?.token ?? "";
 	const expiresAt = output?.expiresAt;
 
 	useEffect(() => {
 		if (!approvalId) return;
 		let alive = true;
-		fetchStatus(approvalId).then((status) => {
+		fetchStatus(approvalId, token).then((status) => {
 			if (!alive) return;
 			if (status === "verified" || status === "consumed") {
 				setPhase("approved");
@@ -108,7 +116,7 @@ export function ApprovalCard({
 		return () => {
 			alive = false;
 		};
-	}, [approvalId, fetchStatus]);
+	}, [approvalId, token, fetchStatus]);
 
 	useEffect(() => {
 		if (phase !== "waiting" || !expiresAt) return;
@@ -125,9 +133,12 @@ export function ApprovalCard({
 		if (!approvalId || code.trim().length < 6) return;
 		setPhase("checking");
 		setNote(null);
-		const result = await verify(approvalId, code.trim());
+		const result = await verify(approvalId, code.trim(), token);
 		if (result.ok) {
 			setPhase("approved");
+			if (result.woke === false) {
+				setNote("rendi did not hear the bell; say anything in the chat");
+			}
 			return;
 		}
 		setCode("");
@@ -173,9 +184,16 @@ export function ApprovalCard({
 						</p>
 					) : approvalId ? (
 						phase === "approved" ? (
-							<p className="font-mono text-xs text-accent-text">
-								approved; rendi is placing the order
-							</p>
+							<div className="space-y-1">
+								<p className="font-mono text-xs text-accent-text">
+									approved; rendi is placing the order
+								</p>
+								{note ? (
+									<p className="font-mono text-xs text-muted-foreground">
+										{note}
+									</p>
+								) : null}
+							</div>
 						) : phase === "cancelled" ? (
 							<p className="font-mono text-xs text-muted-foreground">
 								approval cancelled; the cart is open again
@@ -218,7 +236,7 @@ export function ApprovalCard({
 										variant="ghost"
 										disabled={phase === "checking"}
 										onClick={async () => {
-											await cancel(approvalId);
+											await cancel(approvalId, token);
 											setPhase("cancelled");
 										}}
 									>

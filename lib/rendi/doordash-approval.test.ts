@@ -3,6 +3,7 @@ import type { drizzle } from "drizzle-orm/pglite";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ddApprovals, ddOrders } from "../db/schema.ts";
 import {
+	approvalToken,
 	checkCaps,
 	consumeApproval,
 	createApproval,
@@ -11,6 +12,7 @@ import {
 	reserveOrderSlot,
 	totalWithTip,
 	verifyApproval,
+	verifyApprovalToken,
 	voidApproval,
 } from "./doordash-approval.ts";
 import type { DdCartLine, DdQuoteSnapshot } from "./doordash-cart.ts";
@@ -211,6 +213,25 @@ describe("the approval lifecycle", () => {
 		await consumeApproval(second.id);
 		expect(await voidApproval(second.id)).toBe(false);
 		expect((await row(second.id)).voidedAt).toBeNull();
+	});
+});
+
+describe("approvalToken", () => {
+	it("binds to the approval id and never to guesswork", () => {
+		const original = process.env.RENDER_TOKEN_SECRET;
+		process.env.RENDER_TOKEN_SECRET = "test-secret";
+		try {
+			const token = approvalToken(41);
+			expect(token).toMatch(/^[0-9a-f]{32}$/);
+			expect(approvalToken(41)).toBe(token);
+			expect(verifyApprovalToken(41, token)).toBe(true);
+			expect(verifyApprovalToken(42, token)).toBe(false);
+			expect(verifyApprovalToken(41, "0".repeat(32))).toBe(false);
+			expect(verifyApprovalToken(41, undefined)).toBe(false);
+		} finally {
+			if (original === undefined) delete process.env.RENDER_TOKEN_SECRET;
+			else process.env.RENDER_TOKEN_SECRET = original;
+		}
 	});
 });
 
