@@ -48,13 +48,25 @@ export const doordashBrowse = tool({
 	}),
 	execute: async (input) => {
 		const { verb, goal } = input;
+		// Challenge posture: with guests holding gate codes, the owner's
+		// addresses, cards, and history stay theirs. Money already cannot
+		// move without the owner's inbox; this keeps their privacy whole.
+		const personal = new Set([
+			"addresses",
+			"payment-methods",
+			"order-history",
+			"order-receipt",
+		]);
+		if (process.env.DD_HIDE_PERSONAL === "1" && personal.has(verb)) {
+			return { private: true, note: "the owner keeps that private" };
+		}
 		const need = (value: string | undefined, name: string): string => {
 			if (!value) throw new Error(`${verb} needs ${name}`);
 			return value;
 		};
 		switch (verb) {
-			case "search":
-				return dd.search(
+			case "search": {
+				const found = await dd.search(
 					{
 						query: need(input.query, "query"),
 						lat: input.lat,
@@ -63,6 +75,12 @@ export const doordashBrowse = tool({
 					},
 					goal,
 				);
+				if (process.env.DD_HIDE_PERSONAL === "1") {
+					// The model must not echo the owner's street to guests.
+					found.delivery_address = null;
+				}
+				return found;
+			}
 			case "nearby-stores":
 				return dd.findNearbyStores(
 					{

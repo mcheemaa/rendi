@@ -9,10 +9,12 @@ import {
 	ddLenient,
 	ddMenuResult,
 	ddOrderHistory,
+	ddOrderStatus,
 	ddPaymentMethods,
 	ddPreviewResult,
 	ddSearchResult,
 	ddStoreDetails,
+	ddSubmitResult,
 } from "./doordash-schemas.ts";
 
 const run = promisify(execFile);
@@ -326,6 +328,41 @@ export async function promoApply(
 
 export async function promoList(storeId: string, goal: string) {
 	return parsed(ddLenient, ["promo", "list", "--store-id", storeId], goal);
+}
+
+// DESTRUCTIVE: charges the default payment method immediately, and their
+// API has no idempotency. Only the submit tool calls this, and only by
+// consuming a verified single-use approval first.
+export async function orderSubmit(
+	input: {
+		cartUuid: string;
+		tipCents: number;
+		fulfillment?: string;
+		scheduledTime?: string;
+		priority?: boolean;
+	},
+	goal: string,
+) {
+	const args = [
+		"order",
+		"submit",
+		"--cart-uuid",
+		input.cartUuid,
+		"--tip-cents",
+		String(input.tipCents),
+	];
+	if (input.fulfillment) args.push("--fulfillment", input.fulfillment);
+	if (input.scheduledTime) args.push("--scheduled-time", input.scheduledTime);
+	if (input.priority) args.push("--priority");
+	return parsed(ddSubmitResult, args, goal);
+}
+
+export async function orderStatus(orderUuid: string, goal: string) {
+	return parsed(
+		ddOrderStatus,
+		["order", "status", "--order-uuid", orderUuid],
+		goal,
+	);
 }
 
 export async function addressList(goal: string) {

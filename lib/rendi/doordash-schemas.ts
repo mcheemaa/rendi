@@ -296,6 +296,26 @@ export const ddPreviewResult = z.object({
 		.nullish(),
 });
 
+// Submit and status shapes come from the CLI's documented contract; a
+// real submit cannot be captured without charging, so the ceremony is
+// where these earn their live proof.
+export const ddSubmitResult = z.object({
+	success: z.boolean().optional(),
+	message: z.string().nullish(),
+	order_uuid: z.string().nullish(),
+	cart_uuid: id.nullish(),
+});
+
+export const ddOrderStatus = z.object({
+	success: z.boolean().optional(),
+	message: z.string().nullish(),
+	status: z
+		.enum(["successful", "pending", "action_required", "failed", "not_found"])
+		.catch("pending"),
+	error_message: z.string().nullish(),
+	order_uuid: z.string().nullish(),
+});
+
 // Receipt and in-store item search are surfaced leniently until their
 // verticals get first-class treatment: the model reads what came back.
 export const ddLenient = z.record(z.string(), z.unknown());

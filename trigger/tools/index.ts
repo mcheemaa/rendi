@@ -2,6 +2,8 @@ import { applyCanvasOps } from "./apply-canvas-ops";
 import { createShareLink } from "./create-share-link";
 import { doordashBrowse } from "./doordash-browse";
 import { doordashCart } from "./doordash-cart";
+import { doordashRequestApproval } from "./doordash-request-approval";
+import { doordashSubmit } from "./doordash-submit";
 import { generateImage } from "./generate-image";
 import { loadDataset } from "./load-dataset";
 import { pulseOps } from "./pulse-ops";
@@ -26,4 +28,6 @@ export const toolRegistry = {
 	"sync-commits": syncCommits,
 	"doordash-browse": doordashBrowse,
 	"doordash-cart": doordashCart,
+	"doordash-request-approval": doordashRequestApproval,
+	"doordash-submit": doordashSubmit,
 };
