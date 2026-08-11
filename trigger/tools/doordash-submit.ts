@@ -78,13 +78,41 @@ export const doordashSubmit = tool({
 				.select()
 				.from(ddOrders)
 				.where(eq(ddOrders.approvalId, approvalId));
-			return existing
-				? {
-						outcome: existing.status,
+			if (!existing) return { refused: "the approval was already used" };
+			// A recorded pending or unknown outcome may have resolved since;
+			// ask DoorDash before repeating stale news.
+			if (
+				(existing.status === "pending" || existing.status === "unknown") &&
+				existing.orderUuid
+			) {
+				const check = await dd
+					.orderStatus(existing.orderUuid, goal)
+					.catch(() => null);
+				if (check) {
+					await recordOutcome(existing.id, {
+						status: check.status,
+						errorMessage: check.error_message ?? null,
+					});
+					await setCartStatus(
+						existing.cartUuid,
+						check.status === "successful"
+							? "placed"
+							: check.status === "pending"
+								? "placing"
+								: "failed",
+					);
+					return {
+						outcome: check.status,
 						orderUuid: existing.orderUuid,
-						note: "this approval was already used; that outcome stands",
-					}
-				: { refused: "the approval was already used" };
+						note: "this approval was already used; this is the live status",
+					};
+				}
+			}
+			return {
+				outcome: existing.status,
+				orderUuid: existing.orderUuid,
+				note: "this approval was already used; that outcome stands",
+			};
 		}
 		const approval = consumed.consumed;
 		// Seal the cart the moment the approval is spent: from here to the

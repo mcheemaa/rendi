@@ -68,5 +68,8 @@ export async function POST(
 		}
 		await new Promise((resolve) => setTimeout(resolve, POLL_MS));
 	}
+	// A timeout answer must also be true: cancel the run so a queued edit
+	// cannot mutate the cart after the card was told it failed.
+	await runs.cancel(handle.id).catch(() => {});
 	return Response.json({ error: "edit timed out" }, { status: 504 });
 }
