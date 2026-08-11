@@ -50,6 +50,15 @@ function lineToNewItem(line: DdCartLine, quantity: number): dd.DdNewCartItem {
 	};
 }
 
+// While an approved order is being placed, both hands are off: a
+// mutation racing the final revalidation could change what actually
+// gets charged. Sealed carts refuse edits with a plain answer.
+function assertUnsealed(status: string | undefined): void {
+	if (status === "placing" || status === "placed") {
+		throw new Error("the order is being placed; the cart is sealed");
+	}
+}
+
 async function refreshedSnapshot(input: {
 	cartUuid: string;
 	conversationId: string;
@@ -100,7 +109,12 @@ async function refreshedSnapshot(input: {
 		quote,
 		tipCents,
 		fulfillment,
-		status: "open",
+		// A refresh must never unseal a cart that entered submission while
+		// the CLI calls above were in flight.
+		status:
+			existing?.status === "placing" || existing?.status === "placed"
+				? existing.status
+				: "open",
 	});
 	return {
 		cartUuid: input.cartUuid,
@@ -126,6 +140,9 @@ export async function opAddItems(input: {
 	cartUuid?: string;
 	fulfillment?: "delivery" | "pickup";
 }): Promise<CartOpResult | { needsChoices: true; itemErrors: unknown }> {
+	if (input.cartUuid) {
+		assertUnsealed((await getCartSnapshot(input.cartUuid))?.status);
+	}
 	const envelope = await dd.cartAddItems(
 		{
 			storeId: input.storeId,
@@ -161,6 +178,7 @@ export async function opSetQuantity(input: {
 }): Promise<CartOpResult> {
 	const snapshot = await getCartSnapshot(input.cartUuid);
 	if (!snapshot) throw new Error("unknown cart");
+	assertUnsealed(snapshot.status);
 	const shown = await dd.cartShow(input.cartUuid, input.goal);
 	const lines = normalizeCartLines(shown.cart ?? null);
 	const line = lines.find((candidate) => candidate.lineId === input.lineId);
@@ -169,7 +187,11 @@ export async function opSetQuantity(input: {
 	const delta = target - line.quantity;
 	if (target === 0 || delta < 0) {
 		// The backend has no target-quantity; shrinking means remove, then
-		// re-add at the target with the same modifiers.
+		// re-add at the target with the same modifiers. The re-add needs a
+		// menu id, so demand it BEFORE removing or the line would vanish.
+		if (target > 0 && !line.menuId) {
+			throw new Error("line carries no menu id to add against");
+		}
 		await dd.cartRemoveItem(
 			{ cartUuid: input.cartUuid, cartItemId: line.lineId },
 			input.goal,
@@ -215,6 +237,7 @@ export async function opRemoveLine(input: {
 }): Promise<CartOpResult> {
 	const snapshot = await getCartSnapshot(input.cartUuid);
 	if (!snapshot) throw new Error("unknown cart");
+	assertUnsealed(snapshot.status);
 	const envelope = await dd.cartRemoveItem(
 		{ cartUuid: input.cartUuid, cartItemId: input.lineId },
 		input.goal,
@@ -238,6 +261,9 @@ export async function opPreview(input: {
 }): Promise<CartOpResult> {
 	const snapshot = await getCartSnapshot(input.cartUuid);
 	if (!snapshot) throw new Error("unknown cart");
+	// Previewing with a fulfillment argument MUTATES the cart at DoorDash
+	// (their law); a bare re-price is read-only and stays allowed.
+	if (input.fulfillment) assertUnsealed(snapshot.status);
 	return refreshedSnapshot({
 		cartUuid: input.cartUuid,
 		conversationId: input.conversationId,
@@ -253,6 +279,7 @@ export async function opSetTip(input: {
 	cartUuid: string;
 	tipCents: number;
 }): Promise<{ cartUuid: string; tipCents: number }> {
+	assertUnsealed((await getCartSnapshot(input.cartUuid))?.status);
 	// Tip is a submit-time argument at DoorDash; until then it is ours.
 	const tipCents = Math.max(0, Math.round(input.tipCents));
 	await setCartTip(input.cartUuid, tipCents);
@@ -263,6 +290,7 @@ export async function opDeleteCart(input: {
 	goal: string;
 	cartUuid: string;
 }): Promise<{ deleted: true }> {
+	assertUnsealed((await getCartSnapshot(input.cartUuid))?.status);
 	await dd.cartDelete(input.cartUuid, input.goal);
 	await setCartStatus(input.cartUuid, "abandoned");
 	return { deleted: true };

@@ -30,6 +30,7 @@ export type DdQuoteSnapshot = {
 	totalBeforeTipCents: number | null;
 	currency: string;
 	asapAvailable: boolean;
+	pickupAvailable?: boolean;
 	etaRange?: string | null;
 	deliveryOptions: { type: string; title: string; etaRange?: string | null }[];
 };
@@ -89,6 +90,9 @@ export function normalizeQuote(
 		totalBeforeTipCents: quote.total_before_tip?.unit_amount ?? null,
 		currency: quote.currency ?? "USD",
 		asapAvailable: availability?.asap_available ?? false,
+		// Absent means unknown, not unavailable; only an explicit false
+		// should stop a pickup approval.
+		pickupAvailable: availability?.asap_pickup_available,
 		etaRange: availability?.asap_minutes_range_string ?? null,
 		deliveryOptions: (availability?.delivery_options ?? []).map((option) => ({
 			type: option.delivery_option_type,

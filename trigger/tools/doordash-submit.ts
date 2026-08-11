@@ -87,6 +87,10 @@ export const doordashSubmit = tool({
 				: { refused: "the approval was already used" };
 		}
 		const approval = consumed.consumed;
+		// Seal the cart the moment the approval is spent: from here to the
+		// outcome, both hands are off, and the ops layer refuses mutations
+		// against placing carts so nothing can drift mid-submission.
+		await setCartStatus(approval.cartUuid, "placing");
 		const snapshot = await getCartSnapshot(approval.cartUuid);
 		if (!snapshot) return { refused: "the cart is gone" };
 
@@ -145,7 +149,6 @@ export const doordashSubmit = tool({
 			};
 		}
 		const orderRow = { id: slot.orderId };
-		await setCartStatus(approval.cartUuid, "placing");
 
 		let orderUuid: string | null = null;
 		try {

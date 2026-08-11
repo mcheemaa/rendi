@@ -69,4 +69,28 @@ describe("quote normalization", () => {
 		});
 		expect(normalizeQuote(closed)?.asapAvailable).toBe(false);
 	});
+
+	it("carries pickup availability only when DoorDash states it", () => {
+		const noPickup = ddPreviewResult.parse({
+			...previewFixture,
+			quote: {
+				...previewFixture.quote,
+				delivery_availability: {
+					...previewFixture.quote.delivery_availability,
+					asap_pickup_available: false,
+				},
+			},
+		});
+		expect(normalizeQuote(noPickup)?.pickupAvailable).toBe(false);
+		const { asap_pickup_available: _dropped, ...withoutPickup } =
+			previewFixture.quote.delivery_availability;
+		const absent = ddPreviewResult.parse({
+			...previewFixture,
+			quote: {
+				...previewFixture.quote,
+				delivery_availability: withoutPickup,
+			},
+		});
+		expect(normalizeQuote(absent)?.pickupAvailable).toBeUndefined();
+	});
 });

@@ -52,6 +52,15 @@ export const doordashRequestApproval = tool({
 					"the store is not delivering right now; approval waits until it is",
 			};
 		}
+		if (
+			priced.fulfillment === "pickup" &&
+			priced.quote.pickupAvailable === false
+		) {
+			return {
+				denied:
+					"the store is not taking pickup orders right now; approval waits until it is",
+			};
+		}
 		const totalCents = totalWithTip(priced.quote, priced.tipCents);
 		if (totalCents == null) {
 			return { denied: "the cart would not price; it cannot be approved" };
