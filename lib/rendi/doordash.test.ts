@@ -8,7 +8,13 @@ import {
 	paymentMethodsFixture,
 	searchFixture,
 } from "./doordash.fixtures.ts";
-import { intentFor, orderSubmit, runDd, search } from "./doordash.ts";
+import {
+	findUnrecordedOrder,
+	intentFor,
+	orderSubmit,
+	runDd,
+	search,
+} from "./doordash.ts";
 import {
 	ddAddressList,
 	ddItemDetails,
@@ -183,6 +189,35 @@ describe("orderSubmit", () => {
 		];
 		expect(args).toContain("--yes");
 		expect(options.timeout).toBe(120_000);
+	});
+});
+
+describe("findUnrecordedOrder", () => {
+	it("an unreachable history is not an empty one", async () => {
+		impl.mockRejectedValueOnce({ code: 1, stderr: "network is down" });
+		const rec = await findUnrecordedOrder("s-1", new Set(), "g");
+		expect(rec).toEqual({ unavailable: true });
+	});
+
+	it("an empty history answers found null", async () => {
+		impl.mockResolvedValueOnce(envelope({ orders: [], success: true }));
+		const rec = await findUnrecordedOrder("s-1", new Set(), "g");
+		expect(rec).toEqual({ found: null });
+	});
+
+	it("adopts only orders the ledger has never seen, at this store", async () => {
+		impl.mockResolvedValueOnce(
+			envelope({
+				success: true,
+				orders: [
+					{ order_uuid: "known-1", store_id: "s-1" },
+					{ order_uuid: "other-store", store_id: "s-2" },
+					{ order_uuid: "fresh-1", store_id: "s-1" },
+				],
+			}),
+		);
+		const rec = await findUnrecordedOrder("s-1", new Set(["known-1"]), "g");
+		expect(rec).toEqual({ found: "fresh-1" });
 	});
 });
 

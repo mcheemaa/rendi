@@ -228,6 +228,29 @@ export async function orderHistory(
 	return parsed(ddOrderHistory, args, goal);
 }
 
+// After an uncertain submit, order history is the truth, but only when
+// it actually answers: an unreachable history proves nothing, and
+// conflating it with an empty one is how a live order gets orphaned.
+export type OrderReconciliation =
+	| { found: string | null }
+	| { unavailable: true };
+
+export async function findUnrecordedOrder(
+	storeId: string,
+	known: Set<string>,
+	goal: string,
+): Promise<OrderReconciliation> {
+	const history = await orderHistory({ max: 5, days: 1 }, goal).catch(
+		() => null,
+	);
+	if (!history) return { unavailable: true };
+	const found = history.orders.find(
+		(order) =>
+			String(order.store_id ?? "") === storeId && !known.has(order.order_uuid),
+	);
+	return { found: found?.order_uuid ?? null };
+}
+
 export async function orderReceipt(orderUuid: string, goal: string) {
 	return parsed(
 		ddLenient,
