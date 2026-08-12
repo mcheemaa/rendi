@@ -48,13 +48,18 @@ export function intentFor(goal: string): string {
 	].join("\n");
 }
 
-export async function runDd(args: string[], goal: string): Promise<unknown> {
+export async function runDd(
+	args: string[],
+	goal: string,
+	opts?: { timeoutMs?: number },
+): Promise<unknown> {
+	const timeoutMs = opts?.timeoutMs ?? TIMEOUT_MS;
 	let stdout: string;
 	try {
 		({ stdout } = await run(
 			cliPath(),
 			["--json-output", ...args, "--intent", intentFor(goal)],
-			{ timeout: TIMEOUT_MS, maxBuffer: 16 * 1024 * 1024 },
+			{ timeout: timeoutMs, maxBuffer: 16 * 1024 * 1024 },
 		));
 	} catch (error) {
 		const failure = error as {
@@ -64,9 +69,7 @@ export async function runDd(args: string[], goal: string): Promise<unknown> {
 			code?: string | number;
 		};
 		if (failure.killed) {
-			throw new DdUncertainError(
-				`dd-cli timed out after ${TIMEOUT_MS / 1000}s`,
-			);
+			throw new DdUncertainError(`dd-cli timed out after ${timeoutMs / 1000}s`);
 		}
 		if (failure.code === "ENOENT") {
 			throw new Error("dd-cli is not installed; nothing was sent to DoorDash");
@@ -97,8 +100,9 @@ async function parsed<T extends z.ZodType>(
 	schema: T,
 	args: string[],
 	goal: string,
+	opts?: { timeoutMs?: number },
 ): Promise<z.infer<T>> {
-	return schema.parse(await runDd(args, goal));
+	return schema.parse(await runDd(args, goal, opts));
 }
 
 // The saved default address is the CLI's own location doctrine for "near
@@ -222,6 +226,29 @@ export async function orderHistory(
 	if (input.max) args.push("--max", String(input.max));
 	if (input.days) args.push("--days", String(input.days));
 	return parsed(ddOrderHistory, args, goal);
+}
+
+// After an uncertain submit, order history is the truth, but only when
+// it actually answers: an unreachable history proves nothing, and
+// conflating it with an empty one is how a live order gets orphaned.
+export type OrderReconciliation =
+	| { found: string | null }
+	| { unavailable: true };
+
+export async function findUnrecordedOrder(
+	storeId: string,
+	known: Set<string>,
+	goal: string,
+): Promise<OrderReconciliation> {
+	const history = await orderHistory({ max: 5, days: 1 }, goal).catch(
+		() => null,
+	);
+	if (!history) return { unavailable: true };
+	const found = history.orders.find(
+		(order) =>
+			String(order.store_id ?? "") === storeId && !known.has(order.order_uuid),
+	);
+	return { found: found?.order_uuid ?? null };
 }
 
 export async function orderReceipt(orderUuid: string, goal: string) {
@@ -381,11 +408,17 @@ export async function orderSubmit(
 		input.cartUuid,
 		"--tip-cents",
 		String(input.tipCents),
+		// A headless worker has no keypress to give: without --yes the CLI
+		// waits on its interactive confirmation forever. The human yes
+		// already happened, in the owner's inbox.
+		"--yes",
 	];
 	if (input.fulfillment) args.push("--fulfillment", input.fulfillment);
 	if (input.scheduledTime) args.push("--scheduled-time", input.scheduledTime);
 	if (input.priority) args.push("--priority");
-	return parsed(ddSubmitResult, args, goal);
+	// Payment authorization is the CLI's slowest call; the read-call
+	// timeout starved it during the first ceremony.
+	return parsed(ddSubmitResult, args, goal, { timeoutMs: 120_000 });
 }
 
 export async function orderStatus(orderUuid: string, goal: string) {

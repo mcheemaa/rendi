@@ -32,27 +32,43 @@ async function recordOutcome(
 		.where(eq(ddOrders.id, orderId));
 }
 
-// After an uncertain submit, order history is the truth: an order at
-// this store that our ledger has never seen is the one whose response
-// was lost. Returns its uuid, or null when nothing landed.
-async function reconcileFromHistory(
-	storeId: string,
-	goal: string,
-): Promise<string | null> {
-	const history = await dd
-		.orderHistory({ max: 5, days: 1 }, goal)
-		.catch(() => null);
-	if (!history) return null;
-	const known = new Set(
+async function knownOrderUuids(): Promise<Set<string>> {
+	return new Set(
 		(await getDb().select({ orderUuid: ddOrders.orderUuid }).from(ddOrders))
 			.map((row) => row.orderUuid)
-			.filter(Boolean),
+			.filter((uuid): uuid is string => Boolean(uuid)),
 	);
-	const found = history.orders.find(
-		(order) =>
-			String(order.store_id ?? "") === storeId && !known.has(order.order_uuid),
+}
+
+// Poll an accepted order to a terminal state, bounded, and leave the
+// ledger and cart telling the same story.
+async function settleOrder(
+	orderRowId: number,
+	orderUuid: string,
+	cartUuid: string,
+	goal: string,
+): Promise<{ status: string; errorMessage: string | null }> {
+	let status = "pending";
+	let errorMessage: string | null = null;
+	for (let attempt = 0; attempt < STATUS_POLLS; attempt++) {
+		const check = await dd.orderStatus(orderUuid, goal).catch(() => null);
+		if (check) {
+			status = check.status;
+			errorMessage = check.error_message ?? null;
+			if (status !== "pending") break;
+		}
+		await new Promise((resolve) => setTimeout(resolve, STATUS_POLL_MS));
+	}
+	await recordOutcome(orderRowId, { status, errorMessage });
+	await setCartStatus(
+		cartUuid,
+		status === "successful"
+			? "placed"
+			: status === "pending"
+				? "placing"
+				: "failed",
 	);
-	return found?.order_uuid ?? null;
+	return { status, errorMessage };
 }
 
 // The finalizer, with zero degrees of freedom: everything about the
@@ -105,6 +121,50 @@ export const doordashSubmit = tool({
 						outcome: check.status,
 						orderUuid: existing.orderUuid,
 						note: "this approval was already used; this is the live status",
+					};
+				}
+			}
+			// Unknown with no uuid is the timed-out submit whose truth was
+			// still unwritten. Re-calling this tool IS the settle loop: adopt
+			// the order if history shows one landed, release the cart once a
+			// successful look confirms nothing ever did.
+			if (existing.status === "unknown" && !existing.orderUuid) {
+				const snapshot = await getCartSnapshot(existing.cartUuid);
+				if (snapshot) {
+					const rec = await dd.findUnrecordedOrder(
+						snapshot.storeId,
+						await knownOrderUuids(),
+						goal,
+					);
+					if ("unavailable" in rec) {
+						return {
+							outcome: "unknown",
+							note: "order history is unreachable right now; the cart stays sealed, try this same approval id again shortly",
+						};
+					}
+					if (rec.found) {
+						await recordOutcome(existing.id, { orderUuid: rec.found });
+						const settled = await settleOrder(
+							existing.id,
+							rec.found,
+							existing.cartUuid,
+							goal,
+						);
+						return {
+							outcome: settled.status,
+							orderUuid: rec.found,
+							...(settled.errorMessage ? { error: settled.errorMessage } : {}),
+							note: "the lost submission had landed after all; this is its live status",
+						};
+					}
+					await recordOutcome(existing.id, {
+						status: "failed",
+						errorMessage: "no order ever appeared in history",
+					});
+					await setCartStatus(existing.cartUuid, "open");
+					return {
+						outcome: "failed",
+						note: "nothing ever landed at DoorDash; the cart is open again, request a fresh approval when ready",
 					};
 				}
 			}
@@ -242,17 +302,26 @@ export const doordashSubmit = tool({
 			// and charged before the transport died. Only a structured error
 			// from the CLI proves the order was refused.
 			if (error instanceof dd.DdUncertainError) {
-				orderUuid = await reconcileFromHistory(snapshot.storeId, goal);
-				if (!orderUuid) {
+				const rec = await dd.findUnrecordedOrder(
+					snapshot.storeId,
+					await knownOrderUuids(),
+					goal,
+				);
+				if ("found" in rec && rec.found) {
+					orderUuid = rec.found;
+				} else {
 					await recordOutcome(orderRow.id, {
 						status: "unknown",
 						errorMessage: error.message,
 					});
+					// The cart stays sealed: an immediate miss proves nothing,
+					// since creation can lag a timed-out submit and the history
+					// call itself can fail. The settle loop above releases it.
 					return {
 						outcome: "unknown",
 						storeName: snapshot.storeName,
 						error: error.message,
-						note: "the submission may or may not have reached DoorDash; never resubmit and never check out elsewhere until order history answers. Check the order history in a minute and reconcile honestly.",
+						note: "the submission may or may not have reached DoorDash; the cart stays sealed and nothing else may be ordered. Wait a minute, then call doordash-submit again with this same approval id: it settles against order history, adopting the order if it landed or reopening the cart if it never did.",
 					};
 				}
 			} else {
@@ -275,23 +344,15 @@ export const doordashSubmit = tool({
 		let status = "pending";
 		let errorMessage: string | null = null;
 		if (orderUuid) {
-			for (let attempt = 0; attempt < STATUS_POLLS; attempt++) {
-				const check = await dd.orderStatus(orderUuid, goal);
-				status = check.status;
-				errorMessage = check.error_message ?? null;
-				if (status !== "pending") break;
-				await new Promise((resolve) => setTimeout(resolve, STATUS_POLL_MS));
-			}
+			({ status, errorMessage } = await settleOrder(
+				orderRow.id,
+				orderUuid,
+				approval.cartUuid,
+				goal,
+			));
+		} else {
+			await recordOutcome(orderRow.id, { status, errorMessage });
 		}
-		await recordOutcome(orderRow.id, { status, errorMessage });
-		await setCartStatus(
-			approval.cartUuid,
-			status === "successful"
-				? "placed"
-				: status === "pending"
-					? "placing"
-					: "failed",
-		);
 		emitSpan({
 			conversationId: approval.conversationId,
 			turn: turn?.turn ?? 0,
