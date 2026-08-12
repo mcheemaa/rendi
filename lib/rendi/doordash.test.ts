@@ -8,7 +8,7 @@ import {
 	paymentMethodsFixture,
 	searchFixture,
 } from "./doordash.fixtures.ts";
-import { intentFor, runDd, search } from "./doordash.ts";
+import { intentFor, orderSubmit, runDd, search } from "./doordash.ts";
 import {
 	ddAddressList,
 	ddItemDetails,
@@ -169,6 +169,20 @@ describe("search location doctrine", () => {
 		const result = await search({ query: "tacos", lat: 1, lng: 2 }, "g");
 		expect(result.message).not.toMatch(/widget/i);
 		expect(result.message).toContain("saved addresses");
+	});
+});
+
+describe("orderSubmit", () => {
+	it("consents for the headless worker and waits out payment auth", async () => {
+		impl.mockResolvedValueOnce(envelope({ success: true, order_uuid: "o-1" }));
+		await orderSubmit({ cartUuid: "c-1", tipCents: 142 }, "g");
+		const [, args, options] = impl.mock.calls[0] as [
+			string,
+			string[],
+			{ timeout: number },
+		];
+		expect(args).toContain("--yes");
+		expect(options.timeout).toBe(120_000);
 	});
 });
 

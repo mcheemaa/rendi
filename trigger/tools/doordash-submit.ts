@@ -248,6 +248,10 @@ export const doordashSubmit = tool({
 						status: "unknown",
 						errorMessage: error.message,
 					});
+					// History says nothing landed, so the cart is intact by
+					// definition; leaving it sealed would strand it, which is
+					// what the first ceremony proved.
+					await setCartStatus(approval.cartUuid, "open");
 					return {
 						outcome: "unknown",
 						storeName: snapshot.storeName,

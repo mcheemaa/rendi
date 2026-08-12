@@ -48,13 +48,18 @@ export function intentFor(goal: string): string {
 	].join("\n");
 }
 
-export async function runDd(args: string[], goal: string): Promise<unknown> {
+export async function runDd(
+	args: string[],
+	goal: string,
+	opts?: { timeoutMs?: number },
+): Promise<unknown> {
+	const timeoutMs = opts?.timeoutMs ?? TIMEOUT_MS;
 	let stdout: string;
 	try {
 		({ stdout } = await run(
 			cliPath(),
 			["--json-output", ...args, "--intent", intentFor(goal)],
-			{ timeout: TIMEOUT_MS, maxBuffer: 16 * 1024 * 1024 },
+			{ timeout: timeoutMs, maxBuffer: 16 * 1024 * 1024 },
 		));
 	} catch (error) {
 		const failure = error as {
@@ -64,9 +69,7 @@ export async function runDd(args: string[], goal: string): Promise<unknown> {
 			code?: string | number;
 		};
 		if (failure.killed) {
-			throw new DdUncertainError(
-				`dd-cli timed out after ${TIMEOUT_MS / 1000}s`,
-			);
+			throw new DdUncertainError(`dd-cli timed out after ${timeoutMs / 1000}s`);
 		}
 		if (failure.code === "ENOENT") {
 			throw new Error("dd-cli is not installed; nothing was sent to DoorDash");
@@ -97,8 +100,9 @@ async function parsed<T extends z.ZodType>(
 	schema: T,
 	args: string[],
 	goal: string,
+	opts?: { timeoutMs?: number },
 ): Promise<z.infer<T>> {
-	return schema.parse(await runDd(args, goal));
+	return schema.parse(await runDd(args, goal, opts));
 }
 
 // The saved default address is the CLI's own location doctrine for "near
@@ -381,11 +385,17 @@ export async function orderSubmit(
 		input.cartUuid,
 		"--tip-cents",
 		String(input.tipCents),
+		// A headless worker has no keypress to give: without --yes the CLI
+		// waits on its interactive confirmation forever. The human yes
+		// already happened, in the owner's inbox.
+		"--yes",
 	];
 	if (input.fulfillment) args.push("--fulfillment", input.fulfillment);
 	if (input.scheduledTime) args.push("--scheduled-time", input.scheduledTime);
 	if (input.priority) args.push("--priority");
-	return parsed(ddSubmitResult, args, goal);
+	// Payment authorization is the CLI's slowest call; the read-call
+	// timeout starved it during the first ceremony.
+	return parsed(ddSubmitResult, args, goal, { timeoutMs: 120_000 });
 }
 
 export async function orderStatus(orderUuid: string, goal: string) {
